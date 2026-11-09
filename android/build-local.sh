@@ -15,8 +15,8 @@ PROJ="$(cd .. && pwd)"
 export JAVA_HOME="${JAVA_HOME:-/path/to/jdk17}"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-VER_CODE=11
-VER_NAME=2.5.2
+VER_CODE=12
+VER_NAME=2.5.3
 ABI=arm64-v8a
 LIBDIR="jniLibs/$ABI"
 OUT=out

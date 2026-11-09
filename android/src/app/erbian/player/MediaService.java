@@ -9,9 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.AudioAttributes;
-import android.media.AudioFocusRequest;
-import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
@@ -25,7 +22,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * 前台媒体服务：通知栏播放卡片 + 锁屏控制 + 音频焦点。
+ * 前台媒体服务：通知栏播放卡片 + 锁屏控制（音频焦点交给 WebView 自己管）。
  * 音频本体仍由 WebView 播放；服务只负责「保持进程活着 + 提供系统媒体控制」。
  * 页面通过 EarSide.mediaState(json) 上报状态；控制指令回调到
  * MainActivity.execJs(...) → window.__mediaCtl(cmd)。
@@ -43,8 +40,6 @@ public class MediaService extends Service {
     private MediaSession session;
     private Handler main;
     private PowerManager.WakeLock wake;
-    private AudioFocusRequest focusReq;
-    private AudioManager audioMan;
 
     private boolean playing;
     private String title = "", artist = "", cover = "";
@@ -85,7 +80,6 @@ public class MediaService extends Service {
     public void onCreate() {
         super.onCreate();
         main = new Handler(Looper.getMainLooper());
-        audioMan = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         setUpSession();
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "erbian:svc");
@@ -115,7 +109,6 @@ public class MediaService extends Service {
         refreshNotification();
         if (playing) {
             if (!wake.isHeld()) wake.acquire(4L * 60 * 60 * 1000);
-            requestFocus();
         } else {
             if (wake.isHeld()) wake.release();
         }
@@ -296,7 +289,7 @@ public class MediaService extends Service {
         return coverBm;
     }
 
-    /* ---------------- 状态与焦点 ---------------- */
+    /* ---------------- 状态 ---------------- */
 
     /** 已在主线程外的调用方直接进来；统一投到主线程更新会话与通知 */
     private void apply(final boolean isPlaying, final String json) {
@@ -308,7 +301,6 @@ public class MediaService extends Service {
                 refreshNotification();
                 if (playing) {
                     if (!wake.isHeld()) wake.acquire(4L * 60 * 60 * 1000);
-                    requestFocus();
                 } else if (wake.isHeld()) {
                     wake.release();
                 }
@@ -329,37 +321,11 @@ public class MediaService extends Service {
         }
     }
 
-    private void requestFocus() {
-        try {
-            if (focusReq == null) {
-                AudioAttributes at = new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build();
-                focusReq = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                        .setAudioAttributes(at)
-                        .setOnAudioFocusChangeListener(focusListener)
-                        .build();
-            }
-            audioMan.requestAudioFocus(focusReq);
-        } catch (Throwable t) {
-            try { // API < 26 老接口
-                audioMan.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC,
-                        AudioManager.AUDIOFOCUS_GAIN);
-            } catch (Throwable ignored) {
-            }
-        }
-    }
-
-    private final AudioManager.OnAudioFocusChangeListener focusListener =
-            new AudioManager.OnAudioFocusChangeListener() {
-                public void onAudioFocusChange(int f) {
-                    if (f == AudioManager.AUDIOFOCUS_LOSS
-                            || f == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                        MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('pause')");
-                    }
-                }
-            };
+    /* 注意：这里【故意不申请音频焦点】。
+     * 音频由 WebView(Chromium) 播放，它自己会申请/管理音频焦点；
+     * 服务再申请一次 GAIN 会把 WebView 的焦点顶掉，Chromium 于是把声音静音
+     * （时钟继续走 → 界面像在播、通知栏也像在播，但一点声音都没有）。
+     * 来电话等场景交给 Chromium 自己处理。 */
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {

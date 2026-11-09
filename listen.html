@@ -2047,9 +2047,28 @@
     audio.src = withShare(t.url);
     if (autoplay !== false) {
       var p = audio.play();
-      if (p && p.catch) p.catch(function () {});
+      if (p && p.catch) p.catch(function (err) {
+        // 自动播放被拦 / 格式不支持：不能一声不响地停在 0:00
+        setBuffering(false, '未能开始播放');
+        toast('没能开始播放（' + ((err && err.name) || 'ERROR') + '）· 点一下播放键重试');
+      });
+      watchStart(t);
     }
     prefetchNext();
+  }
+
+  /* 开播看门狗：4 秒还没出声、也没报错，就明确告诉用户并给重试机会
+     （WebView 里音频被系统静音/挂起时，error 事件根本不会触发） */
+  function watchStart(t) {
+    if (S._watch) clearTimeout(S._watch);
+    S._watch = setTimeout(function () {
+      if (current() !== t) return;
+      if (!audio.paused) return;          // 正常在播
+      if (audio.currentTime > 0.3) return; // 播过一段又被停：不是启动失败
+      if (audio.error) return;            // 有错误，交给 error 处理
+      setBuffering(false, '未出声 · 点播放键重试');
+      toast('没能出声，点一下播放键重试');
+    }, 4000);
   }
 
   function playTrack(id, autoplay) {
@@ -2201,7 +2220,9 @@
     S.playing = false;
     document.body.classList.remove('playing');
     if (NATIVE && NATIVE.setPlaying) { try { NATIVE.setPlaying(false, '', ''); } catch (e) {} }
-    pushMedia();
+    // 必须强制推送：play→pause 常在 900ms 内完成，走节流会被丢掉，
+    // 结果通知栏永远停在「播放中」并且进度条自己往前跑（假播放）
+    pushMedia(true);
   });
 
   /* ---------------- 通知栏 / 锁屏媒体控制（APP 壳桥接） ----------------
@@ -2241,7 +2262,10 @@
   // 缓冲状态：等数据时播放键转圈，出声后自动恢复
   audio.addEventListener('waiting', function () { if (!audio.paused) setBuffering(true, '缓冲中…'); });
   audio.addEventListener('stalled', function () { if (!audio.paused) setBuffering(true, '缓冲中…'); });
-  audio.addEventListener('playing', clearBuffering);
+  audio.addEventListener('playing', function () {
+    if (S._watch) { clearTimeout(S._watch); S._watch = null; }
+    clearBuffering();
+  });
   audio.addEventListener('canplay', clearBuffering);
   audio.addEventListener('loadeddata', clearBuffering);
   // 音轨地址过期 / CDN 断流：丢缓存重解析一次
@@ -2270,6 +2294,14 @@
     }
   });
   audio.addEventListener('timeupdate', function () {
+    // 时间在推进 = 其实没卡住：把残留的「缓冲中…」标签清掉
+    // （stalled 事件常常只来一次，之后不再有 playing 事件，标签会一直挂着）
+    if (document.body.classList.contains('buffering')) {
+      if (Math.abs(audio.currentTime - (S._lastT || 0)) > 0.15) {
+        S._lastT = audio.currentTime;
+        clearBuffering();
+      }
+    }
     var d = audio.duration || 0;
     var r = d ? audio.currentTime / d : 0;
     if (!S.seeking) paintSeek(r);
