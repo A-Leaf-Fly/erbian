@@ -66,6 +66,7 @@ public class MainActivity extends Activity {
     private volatile boolean playing;
     private boolean booting;
     private long lastBackAt;
+    private static boolean notifHintShown;
 
     /** MediaService 通过它把通知栏按键转成页面 JS 调用 */
     private static java.lang.ref.WeakReference<MainActivity> ref;
@@ -577,14 +578,17 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 public void run() {
                     keepAwake(p);
-                    if (p && android.os.Build.VERSION.SDK_INT >= 33) {
-                        try { // 通知权限：首次播放时申请一次
-                            if (checkSelfPermission("android.permission.POST_NOTIFICATIONS")
-                                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    if (p && !notifHintShown && !notificationsOn()) {
+                        notifHintShown = true;
+                        if (android.os.Build.VERSION.SDK_INT >= 33) {
+                            try {
                                 requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 0x52);
+                            } catch (Throwable ignored) {
                             }
-                        } catch (Throwable ignored) {
                         }
+                        Toast.makeText(MainActivity.this,
+                                "想让通知栏/锁屏显示播放控制？请在系统设置里允许「耳边」发通知",
+                                Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -657,6 +661,34 @@ public class MainActivity extends Activity {
                 return "2.5.0";
             }
         }
+    }
+
+    /** 通知是否可用（Android 13+ 看 POST_NOTIFICATIONS，低版本看系统开关） */
+    private boolean notificationsOn() {
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (!nm.areNotificationsEnabled()) return false;
+            if (android.os.Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) return false;
+            return true;
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
+        if (req == 0x52) {
+            if (results.length == 0 || results[0] != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this,
+                        "未允许通知：通知栏和锁屏将不会显示播放控制，可在 系统设置→应用→耳边→通知 里开启",
+                        Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+        super.onRequestPermissionsResult(req, perms, results);
     }
 
     /* ---------------- 生命周期 ---------------- */

@@ -52,7 +52,14 @@ public class MediaService extends Service {
     private Bitmap coverBm;
     private String coverLoaded = "";
 
+    private static volatile MediaService inst;
+
     public static void sync(Context ctx, boolean isPlaying, String json) {
+        MediaService s = inst;
+        if (s != null) {           // 服务已在前台跑：直接更新，不再反复 startService
+            s.apply(isPlaying, json);
+            return;
+        }
         Intent i = new Intent(ctx, MediaService.class);
         i.setAction("sync");
         i.putExtra("playing", isPlaying);
@@ -87,6 +94,7 @@ public class MediaService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        inst = this;
         startAsForeground();
         if (intent != null && "sync".equals(intent.getAction())) {
             playing = intent.getBooleanExtra("playing", playing);
@@ -290,6 +298,24 @@ public class MediaService extends Service {
 
     /* ---------------- 状态与焦点 ---------------- */
 
+    /** 已在主线程外的调用方直接进来；统一投到主线程更新会话与通知 */
+    private void apply(final boolean isPlaying, final String json) {
+        main.post(new Runnable() {
+            public void run() {
+                playing = isPlaying;
+                applyStateJson(json);
+                refreshSession();
+                refreshNotification();
+                if (playing) {
+                    if (!wake.isHeld()) wake.acquire(4L * 60 * 60 * 1000);
+                    requestFocus();
+                } else if (wake.isHeld()) {
+                    wake.release();
+                }
+            }
+        });
+    }
+
     private void applyStateJson(String json) {
         if (json == null || json.isEmpty()) return;
         try {
@@ -348,6 +374,7 @@ public class MediaService extends Service {
 
     @Override
     public void onDestroy() {
+        inst = null;
         try {
             if (session != null) {
                 session.release();
