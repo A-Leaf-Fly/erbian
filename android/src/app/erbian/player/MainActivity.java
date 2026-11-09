@@ -109,9 +109,9 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        s.setUserAgentString(s.getUserAgentString() + " EarSideApp/2.0");
+        s.setUserAgentString(s.getUserAgentString() + " EarSideApp/2.4");
         web.setBackgroundColor(0xFFF5F6F8);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         web.addJavascriptInterface(new Bridge(), "EarSide");
@@ -170,7 +170,7 @@ public class MainActivity extends Activity {
                     i.addCategory(Intent.CATEGORY_OPENABLE);
                     i.setType("*/*");
                     i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                    startActivityForResult(Intent.createChooser(i, "选择音频文件"), REQ_FILE);
+                    startActivityForResult(Intent.createChooser(i, "选择文件"), REQ_FILE);
                     return true;
                 } catch (Exception e) {
                     fileCb = null;
@@ -265,7 +265,7 @@ public class MainActivity extends Activity {
             public void run() {
                 booting = false;
                 bar.setVisibility(View.VISIBLE);
-                web.loadUrl(NodeEngine.ORIGIN + "/");
+                web.loadUrl(NodeEngine.ORIGIN + "/?v=" + System.currentTimeMillis());
                 splash.postDelayed(new Runnable() {
                     public void run() {
                         splash.setVisibility(View.GONE);

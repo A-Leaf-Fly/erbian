@@ -132,6 +132,7 @@
   .pf-art svg{width:28px;height:28px;fill:#fff}
   .profile h2{font-size:18px;font-weight:800;letter-spacing:-.01em}
   .profile p{font-size:12px;color:var(--ink3);margin-top:4px}
+  #appVer{font-style:normal;color:var(--ink3);opacity:.8}
   .stats{display:flex;background:#fff;border-radius:16px;padding:15px 0;margin-bottom:14px;box-shadow:0 2px 12px rgba(17,19,24,.045)}
   .stats div{flex:1;text-align:center;position:relative;cursor:pointer}
   .stats div:active{opacity:.55}
@@ -204,6 +205,8 @@
     transform:translateY(101%);visibility:hidden;
     transition:transform .44s cubic-bezier(.32,.72,0,1),visibility .44s}
   .np.on{transform:none;visibility:visible}
+  /* 播放页展开时锁住背后页面，避免滑动穿透 */
+  body.np-open{overflow:hidden;position:fixed;top:var(--np-scroll,0px);left:0;right:0;width:100%}
   .np-bg{position:absolute;inset:-15%;background-size:cover;background-position:center;
     filter:blur(56px) saturate(1.45) brightness(.6);transform:scale(1.08)}
   .np-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,14,.42),rgba(8,10,14,.7) 52%,rgba(8,10,14,.93))}
@@ -218,8 +221,12 @@
   .np-title b{display:block;font-size:10px;font-weight:700;letter-spacing:.16em;color:rgba(255,255,255,.45)}
   .np-title span{display:block;font-size:12.5px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.9)}
 
-  .np-main{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:6px}
-  .disc-wrap{flex:1;display:grid;place-items:center;min-height:0;padding:10px 0}
+  /* 小屏时内容放不下，播放页内部可上下滑动查看（不会带动背后页面） */
+  .np-main{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:6px;
+    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .np-main::-webkit-scrollbar{display:none}
+  .disc-wrap{flex:1;display:grid;place-items:center;min-height:min(70vw,286px);padding:10px 0}
   .disc{width:min(72vw,296px,40vh);aspect-ratio:1;border-radius:50%;overflow:hidden;position:relative;
     background:linear-gradient(140deg,#2b3038,#12151a);
     box-shadow:0 26px 70px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.09);
@@ -276,9 +283,14 @@
   .np-foot .ly-btn{width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.1);
     color:#fff;font-size:12.5px;font-weight:700;letter-spacing:0;flex:none;transition:background .16s,color .16s}
   .np-foot .ly-btn.on{background:#fff;color:#0b0d10}
+  /* 顶栏歌词开关：底部控件被小屏挤出时也能点到 */
+  .np-btn.ly-top{font-size:12.5px;font-weight:700;letter-spacing:0;line-height:1}
+  .np-btn.ly-top.on{background:#fff;color:#0b0d10}
   .ly{flex:1;min-height:0;display:none;flex-direction:column;padding:4px 0 0}
   .np.lyric-mode .ly{display:flex}
   .np.lyric-mode .disc-wrap{display:none}
+  /* 歌词模式：歌词区自己滚，整页不再滚动 */
+  .np.lyric-mode .np-main{overflow:hidden}
   .ly-stage{flex:1;min-height:0;position:relative;overflow:hidden;
     -webkit-mask-image:linear-gradient(180deg,transparent,#000 13%,#000 84%,transparent);
     mask-image:linear-gradient(180deg,transparent,#000 13%,#000 84%,transparent)}
@@ -619,13 +631,24 @@
       <div class="pf-art"><svg viewBox="0 0 24 24" style="width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M5 13v-1a7 7 0 0 1 14 0v1"/><rect x="3.5" y="13" width="4" height="6" rx="1.6"/><rect x="16.5" y="13" width="4" height="6" rx="1.6"/></svg></div>
       <div>
         <h2 id="pfName" hidden>音乐爱好者</h2>
-        <p>数据只存在这台设备上</p>
+        <p>数据只存在这台设备上<i id="appVer" hidden></i></p>
       </div>
     </div>
     <div class="stats">
       <div data-stat="play" role="button" title="点开查看最近播放"><b id="stPlay">0</b><span>听过 ›</span></div>
       <div data-stat="like" role="button" title="点开查看我喜欢"><b id="stLike">0</b><span>喜欢 ›</span></div>
       <div data-stat="queue" role="button" title="点开查看播放列表"><b id="stQueue">0</b><span>列表 ›</span></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h3>数据备份</h3>
+        <button class="btn-ghost" id="exportBtn">导出</button>
+      </div>
+      <p class="muted">把喜欢、歌单、播放历史打包成一份文件。换手机时在新设备上导入即可，全程不经过任何服务器。</p>
+      <button class="btn" id="importBtn">从文件导入</button>
+      <button class="btn-ghost" id="importPasteBtn" style="margin-left:8px">粘贴导入</button>
+      <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
+      <p class="muted" id="backupTip">导入是合并式：同名歌单合并歌曲，不会覆盖你在新手机上已有的数据。</p>
     </div>
     <div class="card">
       <div class="card-h">
@@ -690,17 +713,6 @@
         <i></i>
       </label>
       <p class="muted" id="cacheTip">清理只删临时缓存与图片，不会动你的喜欢、歌单和播放列表。</p>
-    </div>
-    <div class="card">
-      <div class="card-h">
-        <h3>数据备份</h3>
-        <button class="btn-ghost" id="exportBtn">导出</button>
-      </div>
-      <p class="muted">把喜欢、歌单、播放历史打包成一份文件。换手机时在新设备上导入即可，全程不经过任何服务器。</p>
-      <button class="btn" id="importBtn">从文件导入</button>
-      <button class="btn-ghost" id="importPasteBtn" style="margin-left:8px">粘贴导入</button>
-      <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
-      <p class="muted" id="backupTip">导入是合并式：同名歌单合并歌曲，不会覆盖你在新手机上已有的数据。</p>
     </div>
     <div class="card" id="serverCard" hidden>
       <div class="card-h">
@@ -771,6 +783,7 @@
         <svg viewBox="0 0 24 24"><path d="M6 9.5 12 15l6-5.5"/></svg>
       </button>
       <div class="np-title"><b>正在播放</b><span id="npSrc">—</span></div>
+      <button class="np-btn ly-top" id="lyToggleTop" aria-label="歌词" title="歌词">词</button>
       <button class="np-btn" id="npMore" aria-label="播放列表">
         <svg viewBox="0 0 24 24"><path d="M4 7h10.5M4 12h10.5M4 17h7"/><path d="M19.5 9.5v6.9a1.9 1.9 0 1 1-1.9-1.9"/></svg>
       </button>
@@ -1070,6 +1083,13 @@
 
   var $ = function (s) { return document.querySelector(s); };
 
+  /* APP 壳版本（取自 UA 里的 EarSideApp/x.y），方便确认装的是哪个版本 */
+  (function () {
+    var m = /EarSideApp\/([\d.]+)/.exec(navigator.userAgent || '');
+    var v = $('#appVer');
+    if (m && v) { v.textContent = ' · APP v' + m[1]; v.hidden = false; }
+  })();
+
   /* 本机设备号：未登录时用它把数据（尤其是抖音登录态）绑在这一台设备上 */
   var DEVICE_ID = (function () {
     try {
@@ -1126,6 +1146,7 @@
     npPrev: $('#npPrev'), npNext: $('#npNext'), npList: $('#npList'), npLike: $('#npLike'),
     ly: $('#ly'), lyStage: $('#lyStage'), lyInner: $('#lyInner'), lyMsg: $('#lyMsg'),
     lyHint: $('#lyHint'), lyMinus: $('#lyMinus'), lyPlus: $('#lyPlus'), lyToggle: $('#lyToggle'),
+    lyToggleTop: $('#lyToggleTop'),
     modeBtn: $('#modeBtn'), seek: $('#seek'), seekFill: $('#seekFill'), seekKnob: $('#seekKnob'),
     vol: $('#vol'),
     // 列表
@@ -1525,14 +1546,24 @@
 
   /* ---------------- 播放页 / 列表 开关 ---------------- */
   function openNP() {
+    /* 锁住背后页面：记住滚动位置，body 转 fixed 避免滑动穿透 */
+    var y = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.setProperty('--np-scroll', (-y) + 'px');
+    document.body.dataset.npScroll = String(y);
     el.np.classList.add('on');
     el.np.setAttribute('aria-hidden', 'false');
     document.body.classList.add('np-open');
+    var m = el.np.querySelector('.np-main');
+    if (m) m.scrollTop = 0;
   }
   function closeNP() {
     el.np.classList.remove('on');
     el.np.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('np-open');
+    var y = Number(document.body.dataset.npScroll || 0);
+    document.body.style.removeProperty('--np-scroll');
+    delete document.body.dataset.npScroll;
+    if (y) window.scrollTo(0, y);
   }
   function openSheet() {
     el.sheet.classList.add('on');
@@ -1870,6 +1901,7 @@
     var want = on == null ? !el.np.classList.contains('lyric-mode') : !!on;
     el.np.classList.toggle('lyric-mode', want);
     el.lyToggle.classList.toggle('on', want);
+    if (el.lyToggleTop) el.lyToggleTop.classList.toggle('on', want);
     LY.open = want;
     if (!want) return;
     var t = current();
@@ -1894,6 +1926,7 @@
 
   (function bindLyric() {
     el.lyToggle.addEventListener('click', function (e) { e.stopPropagation(); lyToggle(); });
+    if (el.lyToggleTop) el.lyToggleTop.addEventListener('click', function (e) { e.stopPropagation(); lyToggle(); });
     el.disc.addEventListener('click', function () { lyToggle(true); });
     el.lyMsg.addEventListener('click', function () {
       if (el.lyMsg.hidden || /正在找/.test(el.lyMsg.textContent)) return;
