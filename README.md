@@ -1,5 +1,9 @@
 # 耳边 Erbian
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen)
+![deps](https://img.shields.io/badge/dependencies-1-blue)
+
 > **天下苦会员久矣，AI 改变了听歌方式。**
 > 搜歌 → 播放 → 歌词 → 收藏，一条龙，不登录会员、不看广告、数据全在自己手里。
 
@@ -81,9 +85,15 @@ ANDROID_SDK=/path/to/sdk bash build-local.sh
 - 安卓本地版目前只编了 `arm64-v8a`；Android 15 的 16KB 内存页设备需验证兼容性
 - 歌词匹配依赖标题/歌手信息质量，翻唱/ REMIX 版本可能匹配到原曲
 
-## 一次性演示
+## 在线演示（一次性）
 
-当在服务器根目录放一个 `demo-code.txt`（内容为任意口令）时，服务会自动启用**一次性演示门**：口令只能成功进入一位访客（进入后获得 24h cookie），适合"看一眼就走"的公开演示。不放该文件则功能完全不启用。
+想先看一眼再决定要不要自己搭？这里有一个**一次性演示实例**——口令只放行第一位访客，用过即失效：
+
+👉 **https://listen-music-player.app.workbuddy.host/?sharecode=AKLNFA5LBB&code=ERB-J3GF6U**
+
+> 如果打开只看到「演示口令已被使用」，说明名额已被别人拿走（或者就是我本地测试时用掉了）。这不是功能问题——自己 `npm start` 三十秒就能跑起来，效果完全一样。
+
+这个机制是项目内置的：服务器根目录放一个 `demo-code.txt`（内容为任意口令），服务就自动启用**演示门**——口令只能成功进入一位访客（进入后获得 24h cookie），之后所有请求都返回门页。不放这个文件则完全不启用，正常自用毫无影响。
 
 ## 免责声明
 
