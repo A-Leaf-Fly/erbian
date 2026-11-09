@@ -67,12 +67,30 @@ public class MainActivity extends Activity {
     private boolean booting;
     private long lastBackAt;
 
+    /** MediaService 通过它把通知栏按键转成页面 JS 调用 */
+    private static java.lang.ref.WeakReference<MainActivity> ref;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        ref = new java.lang.ref.WeakReference<>(this);
         applyWindow();
         buildUi();
         boot();
+    }
+
+    /** 供 MediaService 在任意线程调用；内部切到 UI 线程执行页面 JS */
+    public static void execJs(final String js) {
+        final MainActivity a = ref == null ? null : ref.get();
+        if (a == null || a.isFinishing()) return;
+        a.runOnUiThread(new Runnable() {
+            public void run() {
+                try {
+                    if (a.web != null) a.web.evaluateJavascript(js, null);
+                } catch (Throwable ignored) {
+                }
+            }
+        });
     }
 
     private SharedPreferences prefs() {
@@ -111,7 +129,7 @@ public class MainActivity extends Activity {
         s.setJavaScriptCanOpenWindowsAutomatically(true);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        s.setUserAgentString(s.getUserAgentString() + " EarSideApp/2.4");
+        s.setUserAgentString(s.getUserAgentString() + " EarSideApp/2.5");
         web.setBackgroundColor(0xFFF5F6F8);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         web.addJavascriptInterface(new Bridge(), "EarSide");
@@ -559,8 +577,25 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 public void run() {
                     keepAwake(p);
+                    if (p && android.os.Build.VERSION.SDK_INT >= 33) {
+                        try { // 通知权限：首次播放时申请一次
+                            if (checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+                                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 0x52);
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
                 }
             });
+        }
+
+        /** 页面 → 原生：播放状态（标题/歌手/进度/封面），驱动通知栏与锁屏媒体卡片 */
+        @JavascriptInterface
+        public void mediaState(final String json) {
+            boolean p = json != null && json.contains("\"playing\":true");
+            playing = p;
+            MediaService.sync(MainActivity.this, p, json);
         }
 
         /** 本地版：没有可切换的服务器，页面据此隐藏「服务器」卡片 */
@@ -615,7 +650,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String appVersion() {
-            return "2.0.0";
+            try {
+                return getPackageManager()
+                        .getPackageInfo(getPackageName(), 0).versionName;
+            } catch (Throwable t) {
+                return "2.5.0";
+            }
         }
     }
 
@@ -631,6 +671,12 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
         if (web != null && web.canGoBack()) {
             web.goBack();
+            return;
+        }
+        // 正在播放：返回键 = 退到后台继续播（通知栏/锁屏可控制），不杀播放
+        if (playing) {
+            moveTaskToBack(true);
+            Toast.makeText(this, "已在后台播放 · 通知栏可控制", Toast.LENGTH_SHORT).show();
             return;
         }
         long now = System.currentTimeMillis();
@@ -667,6 +713,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         keepAwake(false);
+        if (!playing) MediaService.stop(this);   // 还在播就让前台服务续命
         if (web != null) {
             try {
                 web.removeJavascriptInterface("EarSide");
