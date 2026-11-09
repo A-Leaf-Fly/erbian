@@ -5,6 +5,7 @@ import android.content.res.AssetManager;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,8 +23,8 @@ public final class NodeEngine {
     public static final int PORT = 5599;
     public static final String ORIGIN = "http://127.0.0.1:" + PORT;
 
-    /** 资源版本号，改了 assets/node 里的文件就加一，触发重新解包 */
-    private static final String ASSET_VERSION = "1";
+    /** 资源版本号：由 build-local.sh 按 verCode 自动注入（勿手改），升级 APK 必然重新解包 */
+    private static final String ASSET_VERSION = "11";
 
     private static final NodeEngine INSTANCE = new NodeEngine();
 
@@ -71,18 +72,99 @@ public final class NodeEngine {
 
     /**
      * 把 assets/node 整棵树解到私有目录，顺带写入版本号；版本没变就跳过。
+     * 版本号由 build-local.sh 按 verCode 自动注入，升级 APK 必然重新解包；
+     * 另加「关键文件大小比对」兜底，避免忘了改版本号导致页面一直跑旧版。
      */
     public static File prepare(Context ctx) throws IOException {
         File dir = runtimeDir(ctx);
         File stamp = new File(dir, ".asset_version");
-        if (dir.isDirectory() && stamp.isFile() && ASSET_VERSION.equals(readSmall(stamp))) {
+        boolean sameVer = dir.isDirectory() && stamp.isFile() && ASSET_VERSION.equals(readSmall(stamp));
+        if (sameVer && assetSizeSame(ctx, dir)) {
             return dir;
         }
+        // 重新解包前把运行数据挪出来，避免用户缓存/登录态被一起删掉
+        File keep = new File(ctx.getFilesDir(), "engine_keep");
+        if (keep.exists()) deleteTree(keep, 0);
+        keep.mkdirs();
+        String[] keepNames = {".listen-data", ".dydata"};
+        for (String n : keepNames) stash(new File(dir, n), new File(keep, n));
+
         if (dir.exists()) deleteTree(dir, 0);
         dir.mkdirs();
         copyAsset(ctx.getAssets(), "node", dir);
+
+        for (String n : keepNames) stash(new File(keep, n), new File(dir, n));
+        deleteTree(keep, 0);
         writeSmall(stamp, ASSET_VERSION);
         return dir;
+    }
+
+    /** 把 src 挪到 dst（同分区 rename，失败则递归复制） */
+    private static void stash(File src, File dst) {
+        if (src == null || !src.exists()) return;
+        File parent = dst.getParentFile();
+        if (parent != null && !parent.exists()) parent.mkdirs();
+        if (src.renameTo(dst)) return;
+        try {
+            copyTree(src, dst, 0);
+            deleteTree(src, 0);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static void copyTree(File src, File dst, int depth) throws IOException {
+        if (src == null || depth > 8) return;
+        if (src.isFile()) {
+            File parent = dst.getParentFile();
+            if (parent != null && !parent.exists()) parent.mkdirs();
+            InputStream in = new FileInputStream(src);
+            OutputStream os = new FileOutputStream(dst);
+            try {
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+                os.flush();
+            } finally {
+                try { in.close(); } catch (IOException ignored) {}
+                try { os.close(); } catch (IOException ignored) {}
+            }
+            return;
+        }
+        dst.mkdirs();
+        File[] kids = src.listFiles();
+        if (kids == null) return;
+        for (File k : kids) copyTree(k, new File(dst, k.getName()), depth + 1);
+    }
+
+    /** assets 里的页面/服务端与已解包副本字节数是否一致 */
+    private static boolean assetSizeSame(Context ctx, File dir) {
+        try {
+            String[] keys = {"listen.html", "listen-server.js"};
+            for (String k : keys) {
+                long a = assetLength(ctx.getAssets(), "node/" + k);
+                File f = new File(dir, k);
+                if (a < 0 || !f.isFile() || f.length() != a) return false;
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static long assetLength(AssetManager am, String path) {
+        InputStream in = null;
+        try {
+            in = am.open(path);
+            long n = 0;
+            byte[] buf = new byte[64 * 1024];
+            int r;
+            while ((r = in.read(buf)) > 0) n += r;
+            return n;
+        } catch (Exception e) {
+            return -1;
+        } finally {
+            if (in != null) try { in.close(); } catch (IOException ignored) {}
+        }
     }
 
     private static void copyAsset(AssetManager am, String path, File out) throws IOException {
