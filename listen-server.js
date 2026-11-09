@@ -2418,10 +2418,49 @@ function dataFileFor(token) {
 }
 
 /* ---------------- 服务 ---------------- */
+
+/* 演示门（可选）：在根目录放一个 demo-code.txt（内容为口令）即启用。
+   口令只能用一次（首个成功访问者获得 cookie），适合公开演示场景。
+   不放该文件则完全不启用，不影响正常使用。 */
+const DEMO_FILE = path.join(ROOT, 'demo-code.txt');
+let demoGate = null;
+try {
+  const c = fs.readFileSync(DEMO_FILE, 'utf8').trim();
+  if (c) demoGate = { code: c, used: false };
+} catch (e) { /* 未启用演示门 */ }
+
+function demoGateHtml(used) {
+  const msg = used
+    ? '演示口令已被使用，每次口令只放行一位访客。'
+    : '这是一个私有演示实例，需要一次性口令才能进入。';
+  return '<!doctype html><html lang="zh"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>耳边 · 演示门</title><style>' +
+    'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+    'background:#0d0d0f;color:#e8e6e1;font-family:system-ui,sans-serif;text-align:center}' +
+    '.card{max-width:420px;padding:48px 32px;line-height:1.8}' +
+    'h1{font-size:20px;font-weight:600;margin:0 0 12px}p{margin:0;color:#8a8781;font-size:14px}' +
+    '</style></head><body><div class="card"><h1>♪ 耳边</h1><p>' + msg + '</p>' +
+    '<p style="margin-top:16px">源码与自建教程见 GitHub 仓库 README</p></div></body></html>';
+}
+
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   const p = u.pathname;
   const q = u.searchParams;
+
+  if (demoGate) {
+    const supplied = q.get('code');
+    if (supplied !== null && supplied === demoGate.code && !demoGate.used) {
+      demoGate.used = true;
+      res.setHeader('Set-Cookie', 'demo=ok; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax');
+      res.setHeader('Cache-Control', 'no-store');
+    } else if (!(req.headers.cookie || '').includes('demo=ok')) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(demoGateHtml(demoGate.used));
+      return;
+    }
+  }
 
   // 整个请求在「身份上下文」里跑：抖音会话、缓存都按这个身份隔离
   return dyCtx.run(dyIdentityOf(q), async () => {
