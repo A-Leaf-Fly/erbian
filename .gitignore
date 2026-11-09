@@ -1,0 +1,20 @@
+# 运行数据（含会话 Cookie、音频缓存、歌词缓存）
+.dydata/
+.listen-data/
+.server.log
+*.log
+
+# 演示口令（私有，不入库）
+demo-code.txt
+
+# 构建产物与密钥
+android/out/
+android/jniLibs/*.so
+android/erbian.jks
+*.apk
+*.idsig
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+node_modules/

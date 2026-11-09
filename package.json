@@ -1,0 +1,16 @@
+{
+  "name": "erbian",
+  "version": "2.3.0",
+  "private": true,
+  "description": "耳边 Erbian · 在线音乐播放器（B 站音轨 + 本地文件 + 歌词 + 猜你喜欢，零框架依赖）",
+  "main": "listen-server.js",
+  "scripts": {
+    "start": "node listen-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "abogus": "^2.1.1"
+  }
+}

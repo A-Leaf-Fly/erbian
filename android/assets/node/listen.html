@@ -1,0 +1,4767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>耳边 · 音乐</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23534AB7'/%3E%3Cpath d='M20 8.5v10.2a3.4 3.4 0 1 1-2-3.1V10.6l-6 1.4v7.7a3.4 3.4 0 1 1-2-3.1v-7L20 8.5z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#111318; --ink2:#646a77; --ink3:#9aa1ae;
+    --green:#1fc45e; --green-d:#12a94b; --line:rgba(17,19,24,.075);
+    --safe:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--ink);
+    font:400 15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(158px + var(--safe));
+    overscroll-behavior-y:contain;
+  }
+  button{font-family:inherit;cursor:pointer;color:inherit}
+  h1,h2,h3,p{margin:0}
+  svg{display:block}
+
+  /* ---------------- 顶栏 ---------------- */
+  .top{position:sticky;top:0;z-index:40;background:rgba(245,246,248,.92);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid var(--line)}
+  .topin{max-width:820px;margin:0 auto;padding:9px 16px;display:flex;align-items:center;gap:10px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;flex:none;letter-spacing:.01em}
+  .brand i{width:25px;height:25px;border-radius:8px;background:#534AB7;display:grid;place-items:center;box-shadow:0 2px 7px rgba(83,74,183,.32)}
+  .brand i svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .search{flex:1;min-width:0;display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 13px;transition:border-color .2s,box-shadow .2s}
+  .search:focus-within{border-color:rgba(31,196,94,.45);box-shadow:0 0 0 3px rgba(31,196,94,.1)}
+  .search svg{width:15px;height:15px;stroke:var(--ink3);fill:none;stroke-width:2;stroke-linecap:round;flex:none}
+  .search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:13.5px;color:var(--ink)}
+  .search input::placeholder{color:var(--ink3)}
+  .avatar{width:33px;height:33px;border-radius:50%;border:0;background:#e8eaef;color:var(--ink2);display:grid;place-items:center;flex:none}
+  .avatar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+
+  .pills{display:none;gap:2px;max-width:820px;margin:0 auto;padding:0 16px 8px}
+  .pill{border:0;background:transparent;color:var(--ink2);font-size:13.5px;font-weight:600;padding:6px 13px;border-radius:999px;transition:background .16s,color .16s}
+  .pill.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(17,19,24,.09)}
+
+  /* ---------------- 主体 ---------------- */
+  main{max-width:820px;margin:0 auto;padding:16px 16px 0}
+  .view[hidden]{display:none}
+
+  .hero{display:flex;align-items:flex-end;gap:10px;margin:2px 0 12px;padding:0 2px}
+  .hero h1{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+  .hero p{font-size:12.5px;color:var(--ink3);margin-top:5px}
+  .hero .btn-ghost{margin-left:auto;flex:none}
+
+  .btn-ghost{border:1px solid var(--line);background:#fff;color:var(--ink2);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;transition:background .16s}
+  .btn-ghost:active{background:#eceef2}
+  .btn{border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:700;font-size:13.5px;padding:11px 18px;transition:background .16s}
+  .btn:active{background:var(--green-d)}
+
+  /* ---------------- 列表行 ---------------- */
+  .rows{display:flex;flex-direction:column;gap:1px}
+  .row{display:flex;align-items:center;gap:11px;padding:8px;border-radius:14px;transition:background .16s}
+  .row:active{background:rgba(17,19,24,.045)}
+  .row.on{background:rgba(31,196,94,.085)}
+  .r-art{width:46px;height:46px;border-radius:11px;overflow:hidden;flex:none;position:relative;background:#e6e9ee}
+  .r-art img{width:100%;height:100%;object-fit:cover;display:block}
+  /* 没有封面时：白底 + 歌名（取前两个字） */
+  .r-art .ph,.mini-art .ph,.disc .ph{position:absolute;inset:0;display:grid;place-items:center;
+    background:#fff;color:#262b34;font-weight:700;text-align:center;line-height:1.1;
+    letter-spacing:-.02em;overflow:hidden;word-break:break-all;
+    box-shadow:inset 0 0 0 1px rgba(17,19,24,.1)}
+  .r-art .ph{font-size:15px;padding:4px;text-indent:-1px}
+  .r-idx{width:26px;text-align:center;font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums;flex:none}
+  .r-info{flex:1;min-width:0}
+  .r-name{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+  .row.on .r-name{color:var(--green-d)}
+  .r-sub{font-size:12px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .r-sub em{font-style:normal;color:var(--green-d);opacity:.9}
+  .r-dur{font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums;flex:none}
+  .r-acts{display:flex;gap:1px;flex:none}
+  .r-acts button{width:33px;height:33px;border:0;border-radius:50%;background:transparent;color:var(--ink3);display:grid;place-items:center;transition:color .15s,background .15s}
+  .r-acts button svg{width:17px;height:17px}
+  .r-acts button:active{background:rgba(17,19,24,.08)}
+  .r-acts .queued{color:var(--green-d)}
+  .r-acts .like.on{color:#ff4d67}
+  .r-acts .like.on svg{fill:currentColor}
+  @media (max-width:480px){
+    .r-acts button{width:29px;height:29px}
+    .r-acts button svg{width:15px;height:15px}
+    .r-dur{display:none}
+  }
+
+  .bars{display:flex;gap:2px;align-items:flex-end;height:12px;justify-content:center}
+  .bars i{width:2.5px;border-radius:1px;background:var(--green);height:4px;animation:bar 1s ease-in-out infinite}
+  .bars i:nth-child(2){animation-delay:.16s}
+  .bars i:nth-child(3){animation-delay:.32s}
+  @keyframes bar{0%,100%{height:4px}50%{height:12px}}
+
+  .empty{padding:40px 12px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.8}
+
+  /* ---------------- 搜索 ---------------- */
+  .sbar{display:flex;gap:8px;margin-bottom:4px}
+  .sbar input{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px 15px;font-size:14px;outline:0;color:var(--ink);transition:border-color .2s,box-shadow .2s}
+  .sbar input:focus{border-color:rgba(31,196,94,.5);box-shadow:0 0 0 3px rgba(31,196,94,.12)}
+  .sbar button{border:0;border-radius:13px;background:var(--green);color:#fff;font-weight:700;font-size:14px;padding:0 20px;flex:none}
+  .sbar button:disabled{opacity:.6}
+  /* 音源标签（B 站 / 网易云 / 抖音 / 本地）——所有列表行通用 */
+  .src{font-style:normal;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:1.5px;white-space:nowrap;letter-spacing:.02em}
+  .src.bili{color:#e0559a;background:rgba(251,114,153,.13)}
+  .src.ne{color:#d33a31;background:rgba(211,58,49,.1)}
+  .src.dy{color:#00939b;background:rgba(0,147,155,.11)}
+  .src.qq{color:#0f9d58;background:rgba(49,194,124,.14)}
+  .src.loc{color:var(--ink3);background:rgba(17,19,24,.07)}
+  /* 搜索页的音源切换 */
+  .src-tabs{display:flex;gap:8px;margin:10px 0 2px;overflow-x:auto;scrollbar-width:none}
+  .src-tabs::-webkit-scrollbar{display:none}
+  .stag{border:1px solid var(--line);background:#fff;color:var(--ink2);font-size:12.5px;font-weight:600;padding:6px 15px;border-radius:999px;transition:background .16s,color .16s,border-color .16s;flex:none}
+  .src-hint{font-size:11px;color:var(--ink3);line-height:1.6;margin:8px 3px 0;padding:7px 10px;background:rgba(49,194,124,.07);border-radius:9px}
+  .stag.on{background:var(--green);border-color:var(--green);color:#fff}
+  .sect-h{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink3);letter-spacing:.04em;margin:22px 4px 10px}
+  .sect-h .btn-ghost{margin-left:auto;letter-spacing:0;font-weight:600}
+  .sect-h .sect-tip{margin-left:auto;font-weight:500;font-size:11px;color:var(--ink3)}
+  .tags{display:flex;flex-wrap:wrap;gap:8px}
+  .tag{border:1px solid var(--line);background:#fff;color:var(--ink2);font-size:12.5px;padding:7px 14px;border-radius:999px;transition:background .16s}
+  .tag:active{background:#eef0f3}
+
+  /* ---------------- 我的 ---------------- */
+  .profile{display:flex;align-items:center;gap:14px;padding:6px 2px 18px}
+  .pf-art{width:62px;height:62px;border-radius:21px;background:#534AB7;display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 8px 20px rgba(83,74,183,.28)}
+  .pf-art svg{width:28px;height:28px;fill:#fff}
+  .profile h2{font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .profile p{font-size:12px;color:var(--ink3);margin-top:4px}
+  .stats{display:flex;background:#fff;border-radius:16px;padding:15px 0;margin-bottom:14px;box-shadow:0 2px 12px rgba(17,19,24,.045)}
+  .stats div{flex:1;text-align:center;position:relative;cursor:pointer}
+  .stats div:active{opacity:.55}
+  .stats div+div::before{content:"";position:absolute;left:0;top:12%;height:76%;width:1px;background:var(--line)}
+  .stats b{display:block;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+  .stats span{font-size:11.5px;color:var(--ink3)}
+  #mineSheet .sheet-h .btn-ghost+.btn-ghost{margin-left:0}
+  .card{background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px rgba(17,19,24,.045)}
+  .card h3{font-size:14.5px;font-weight:700}
+  .card .muted{font-size:12.5px;color:var(--ink3);margin:7px 0 13px;line-height:1.65}
+  .card-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .card-h .btn-ghost{margin-left:auto}
+
+  /* ---------------- 存储与缓存 ---------------- */
+  .cache-rows{margin:2px 0 10px}
+  .cache-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--ink2)}
+  .cache-row:last-child{border-bottom:0}
+  .cache-row b{font-size:12.5px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .cache-auto{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#f7f8fa;cursor:pointer;position:relative}
+  .cache-auto span{flex:1;font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.4}
+  .cache-auto em{display:block;font-style:normal;font-size:11px;font-weight:400;color:var(--ink3);margin-top:3px}
+  .cache-auto input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  .cache-auto i{width:40px;height:23px;border-radius:999px;background:#d8dce4;position:relative;flex:none;transition:background .18s}
+  .cache-auto i::after{content:'';position:absolute;top:2.5px;left:2.5px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(17,19,24,.22);transition:transform .18s}
+  .cache-auto input:checked+i{background:#534AB7}
+  .cache-auto input:checked+i::after{transform:translateX(17px)}
+  .cache-bar{height:4px;border-radius:99px;background:rgba(17,19,24,.07);overflow:hidden;margin:0 0 12px}
+  .cache-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#6f66d6,#534AB7);transition:width .4s}
+
+  /* ---------------- 迷你播放条（悬浮圆角卡片） ---------------- */
+  .mini{position:fixed;left:10px;right:10px;bottom:calc(67px + var(--safe));z-index:45;
+    background:rgba(255,255,255,.97);backdrop-filter:blur(18px) saturate(180%);
+    border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    box-shadow:0 8px 28px rgba(17,19,24,.13),0 2px 8px rgba(17,19,24,.06)}
+  .mini-prog{height:2.5px;background:rgba(17,19,24,.06);position:relative;overflow:hidden}
+  .mini-prog i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--green);border-radius:0 2px 2px 0;transition:width .2s linear}
+  .mini-in{max-width:820px;margin:0 auto;padding:7px 8px 7px 6px;display:flex;align-items:center;gap:5px}
+  .mini-l{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:0;text-align:left}
+  .mini-art{width:42px;height:42px;border-radius:50%;overflow:hidden;flex:none;background:#e6e9ee;position:relative;animation:spin 26s linear infinite;animation-play-state:paused;box-shadow:0 2px 8px rgba(17,19,24,.14)}
+  body.playing .mini-art{animation-play-state:running}
+  .mini-art img{width:100%;height:100%;object-fit:cover;display:block}
+  .mini-art .ph{font-size:13px;padding:3px;letter-spacing:-.03em}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mini-t{min-width:0;flex:1}
+  .mini-t b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-t span{display:block;font-size:11.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .mini-btn{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:var(--ink);display:grid;place-items:center;flex:none}
+  .mini-btn:active{background:rgba(17,19,24,.07)}
+  .mini-btn svg{width:19px;height:19px}
+  .mini-like.on{color:#ff4d67}
+  .mini-like.on svg{fill:currentColor}
+  @media (max-width:420px){ .mini-like{display:none} }
+  .mini-play{width:41px;height:41px;margin:0 2px;border-radius:50%;border:0;background:var(--green);color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 3px 10px rgba(18,169,75,.32);transition:transform .12s}
+  .mini-play:active{background:var(--green-d);transform:scale(.93)}
+  .mini-play svg{width:16px;height:16px}
+
+  .i-pause{display:none}
+  body.playing .i-play{display:none}
+  body.playing .i-pause{display:block}
+
+  /* ---------------- 底部 tab ---------------- */
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:46;height:calc(57px + var(--safe));padding-bottom:var(--safe);
+    background:rgba(255,255,255,.97);backdrop-filter:blur(18px) saturate(180%);border-top:1px solid var(--line);display:flex}
+  .tb{flex:1;border:0;background:transparent;color:var(--ink3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;transition:color .16s}
+  .tb svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tb.on{color:var(--green-d)}
+
+  /* ---------------- 播放页 ---------------- */
+  .np{position:fixed;inset:0;z-index:80;color:#fff;overflow:hidden;
+    transform:translateY(101%);visibility:hidden;
+    transition:transform .44s cubic-bezier(.32,.72,0,1),visibility .44s}
+  .np.on{transform:none;visibility:visible}
+  .np-bg{position:absolute;inset:-15%;background-size:cover;background-position:center;
+    filter:blur(56px) saturate(1.45) brightness(.6);transform:scale(1.08)}
+  .np-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,14,.42),rgba(8,10,14,.7) 52%,rgba(8,10,14,.93))}
+  .np-body{position:relative;height:100%;display:flex;flex-direction:column;
+    padding:calc(8px + env(safe-area-inset-top)) 24px calc(16px + var(--safe))}
+  .np-top{display:flex;align-items:center;gap:12px;flex:none;padding-top:4px}
+  .np-btn{width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;
+    display:grid;place-items:center;flex:none;transition:background .16s}
+  .np-btn:active{background:rgba(255,255,255,.22)}
+  .np-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .np-title{flex:1;text-align:center;min-width:0}
+  .np-title b{display:block;font-size:10px;font-weight:700;letter-spacing:.16em;color:rgba(255,255,255,.45)}
+  .np-title span{display:block;font-size:12.5px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.9)}
+
+  .np-main{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:6px}
+  .disc-wrap{flex:1;display:grid;place-items:center;min-height:0;padding:10px 0}
+  .disc{width:min(72vw,296px,40vh);aspect-ratio:1;border-radius:50%;overflow:hidden;position:relative;
+    background:linear-gradient(140deg,#2b3038,#12151a);
+    box-shadow:0 26px 70px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.09);
+    animation:spin 26s linear infinite;animation-play-state:paused}
+  body.playing .disc{animation-play-state:running}
+  .disc img{width:100%;height:100%;object-fit:cover;display:block}
+  .disc .ph{font-size:21px;padding:0 23%;line-height:1.18;font-weight:800}
+  .disc.noph,.mini-art.noph{animation:none!important}
+
+  .np-meta{flex:none;text-align:center;padding:0 4px}
+  .np-meta h1{font-size:21px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .np-meta p{font-size:12.5px;color:rgba(255,255,255,.58);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .np-seek{display:flex;align-items:center;gap:9px;margin-top:20px;flex:none}
+  .np-seek span{font-size:11px;color:rgba(255,255,255,.5);font-variant-numeric:tabular-nums;min-width:33px;text-align:center;flex:none}
+  .seek{position:relative;flex:1;height:22px;display:flex;align-items:center;touch-action:none;cursor:pointer}
+  .seek .rail{width:100%;height:3px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden}
+  .seek .fill{height:100%;width:0;background:var(--green);border-radius:2px}
+  .seek .knob{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:#fff;
+    transform:translate(-50%,-50%);box-shadow:0 1px 7px rgba(0,0,0,.45);opacity:0;transition:opacity .18s}
+  .seek.dragging .knob,.seek:hover .knob{opacity:1}
+
+  .np-ctrl{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex:none}
+  .np-play{width:64px;height:64px;border-radius:50%;border:0;background:#fff;color:#0b0d10;
+    display:grid;place-items:center;box-shadow:0 8px 26px rgba(0,0,0,.38);transition:transform .12s}
+  .np-play:active{transform:scale(.94)}
+  .np-play svg{width:25px;height:25px}
+  /* 缓冲中：把播放键换成转圈 */
+  @keyframes lspin{to{transform:rotate(360deg)}}
+  body.buffering .np-play svg,body.buffering .mini-play svg{display:none}
+  body.buffering .np-play::after,body.buffering .mini-play::after{
+    content:"";width:19px;height:19px;border-radius:50%;
+    border:2.2px solid rgba(0,0,0,.16);border-top-color:#0b0d10;animation:lspin .72s linear infinite}
+  body.buffering .mini-play::after{width:15px;height:15px;border-color:rgba(255,255,255,.34);border-top-color:#fff}
+  body.buffering .np-title span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--green);margin-right:5px;vertical-align:1px;animation:blink 1s ease-in-out infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .np-big{width:50px;height:50px;border:0;background:transparent;color:#fff;display:grid;place-items:center;flex:none}
+  .np-big svg{width:27px;height:27px;fill:currentColor}
+  .np-big:active{opacity:.6}
+  .np-btn.mode svg{width:19px;height:19px}
+
+  .np-foot{display:flex;align-items:center;gap:14px;margin-top:12px;flex:none}
+  .np-foot .like{width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;flex:none}
+  .np-foot .like svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+  .np-foot .like.on{color:#ff5470}
+  .np-foot .like.on svg{fill:currentColor;stroke:currentColor}
+  .vol{display:flex;align-items:center;gap:9px;flex:1;max-width:210px;margin-left:auto}
+  .vol svg{width:16px;height:16px;fill:none;stroke:rgba(255,255,255,.55);stroke-width:1.8;stroke-linecap:round;flex:none}
+  .vol input{flex:1;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;background:rgba(255,255,255,.22);outline:0}
+  .vol input::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:#fff}
+
+  /* ---------------- 歌词 ---------------- */
+  .np-foot .ly-btn{width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.1);
+    color:#fff;font-size:12.5px;font-weight:700;letter-spacing:0;flex:none;transition:background .16s,color .16s}
+  .np-foot .ly-btn.on{background:#fff;color:#0b0d10}
+  .ly{flex:1;min-height:0;display:none;flex-direction:column;padding:4px 0 0}
+  .np.lyric-mode .ly{display:flex}
+  .np.lyric-mode .disc-wrap{display:none}
+  .ly-stage{flex:1;min-height:0;position:relative;overflow:hidden;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 13%,#000 84%,transparent);
+    mask-image:linear-gradient(180deg,transparent,#000 13%,#000 84%,transparent)}
+  .ly-inner{position:absolute;left:0;right:0;top:0;padding:0 10px;
+    transition:transform .55s cubic-bezier(.22,.61,.36,1);will-change:transform}
+  .ly-row{padding:10px 4px;text-align:center;color:rgba(255,255,255,.38);font-size:15.5px;font-weight:600;
+    line-height:1.42;transition:color .35s,opacity .35s,transform .35s;transform-origin:center;cursor:pointer}
+  .ly-row .tr{display:block;font-size:12px;font-weight:400;color:rgba(255,255,255,.3);margin-top:4px;line-height:1.35}
+  .ly-row.on{color:#fff;transform:scale(1.055)}
+  .ly-row.on .tr{color:rgba(255,255,255,.55)}
+  .ly-row.near{color:rgba(255,255,255,.62)}
+  .ly-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+    padding:0 26px;color:rgba(255,255,255,.5);font-size:13px;line-height:1.7}
+  .ly-msg[hidden]{display:none}
+  .ly-msg .ly-retry{color:#fff;text-decoration:underline;cursor:pointer;opacity:.9}
+  .ly-msg .spin{display:inline-block;width:17px;height:17px;border-radius:50%;margin-bottom:9px;
+    border:2px solid rgba(255,255,255,.2);border-top-color:#fff;animation:lspin .75s linear infinite}
+  .ly-bar{flex:none;display:flex;align-items:center;gap:7px;padding:8px 2px 2px;min-height:30px}
+  .ly-bar .hint{flex:1;min-width:0;font-size:11px;color:rgba(255,255,255,.42);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ly-cal{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);
+    font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;flex:none}
+  .ly-cal:active{background:rgba(255,255,255,.18)}
+  .ly-cal[hidden]{display:none}
+
+  /* ---------------- 播放列表 sheet ---------------- */
+  .scrim{position:fixed;inset:0;z-index:75;background:rgba(8,10,14,.45);opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:76;background:#fff;border-radius:20px 20px 0 0;
+    max-width:820px;margin:0 auto;padding-bottom:var(--safe);max-height:78vh;
+    display:flex;flex-direction:column;visibility:hidden;
+    transform:translateY(101%);transition:transform .38s cubic-bezier(.32,.72,0,1),visibility .38s}
+  .sheet.on{transform:none;visibility:visible}
+  .sheet-grab{width:36px;height:4px;border-radius:2px;background:rgba(17,19,24,.15);margin:9px auto 2px;flex:none}
+  .sheet-h{display:flex;align-items:center;gap:10px;padding:10px 18px 12px;flex:none}
+  .sheet-h strong{font-size:15px;font-weight:700}
+  .sheet-h span{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .sheet-h .btn-ghost{margin-left:auto}
+  .sheet .rows{overflow:auto;padding:0 10px 8px;flex:1;-webkit-overflow-scrolling:touch}
+  .sheet-f{padding:10px 16px 14px;flex:none;border-top:1px solid var(--line)}
+  .sheet-f .btn{width:100%}
+  .del{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--ink3);font-size:14px;display:grid;place-items:center;flex:none}
+  .del:active{background:rgba(17,19,24,.07)}
+
+  /* ---------------- 提示 ---------------- */
+  .toast{position:fixed;left:50%;bottom:calc(148px + var(--safe));z-index:100;transform:translate(-50%,12px);
+    background:rgba(17,19,24,.92);color:#fff;font-size:12.5px;padding:9px 17px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:opacity .24s,transform .24s;max-width:86vw;text-align:center;line-height:1.5}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  .banner{position:fixed;left:0;right:0;top:0;z-index:110;background:#fff5ed;color:#9a3f12;border-bottom:1px solid rgba(196,110,40,.2);
+    font-size:12.5px;padding:9px 14px;display:flex;align-items:center;gap:10px;justify-content:center}
+  .banner[hidden]{display:none}
+  .banner button{margin-left:6px;border:1px solid rgba(154,63,18,.28);background:#fff;color:#9a3f12;border-radius:999px;font-size:12px;padding:4px 11px;flex:none}
+
+  /* ---------------- 音源账号（抖音） ---------------- */
+  .acc-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+  .acc-logo{width:42px;height:42px;border-radius:13px;flex:none;display:grid;place-items:center;
+    font-size:17px;font-weight:800;color:#fff;background:#161823;letter-spacing:-.02em}
+  .acc-logo.on{background:linear-gradient(140deg,#25f4ee,#161823 55%,#fe2c55)}
+  .acc-info{flex:1;min-width:0}
+  .acc-info b{display:block;font-size:14px;font-weight:700}
+  .acc-info span{display:block;font-size:11.5px;color:var(--ink3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acc-row .btn-ghost{flex:none}
+  .acc-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:1px}
+  .acc-dot.off{background:#c8ccd4}
+  .acc-logo.qq{background:linear-gradient(150deg,#3aa5ff,#1263e0);box-shadow:0 3px 10px rgba(18,99,224,.3)}
+
+  /* ---------------- 账号登录 / 注册 ---------------- */
+  .auth-tabs{display:flex;gap:8px;margin-bottom:14px}
+  .auth-field{margin-bottom:12px}
+  .auth-field label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+  .auth-field input{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;
+    outline:0;color:var(--ink);background:#fff;transition:border-color .2s,box-shadow .2s}
+  .auth-field input:focus{border-color:rgba(31,196,94,.5);box-shadow:0 0 0 3px rgba(31,196,94,.12)}
+  .auth-note{font-size:11.5px;color:var(--ink3);line-height:1.7;margin:2px 0 10px}
+  .pw-wrap{position:relative}
+  .pw-wrap input{padding-right:46px}
+  .pw-eye{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:#9aa1ad;display:grid;place-items:center}
+  .pw-eye:active{background:rgba(17,19,24,.07)}
+  .pw-eye svg{width:19px;height:19px}
+  .pw-eye.on{color:var(--green-d)}
+  .likes-toggle{width:100%;border:0;background:transparent;color:var(--green-d);font-size:13px;font-weight:700;padding:10px 0 6px}
+  .likes-foot{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;color:var(--ink3);font-size:12.5px;flex-wrap:wrap}
+  .likes-foot button{min-width:34px;height:32px;padding:0 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-size:13px;font-weight:600}
+  .likes-foot button:disabled{opacity:.35}
+  .likes-foot .fold{color:var(--ink3)}
+
+  .dy-step > b{display:block;font-size:13px;font-weight:800;color:var(--ink);margin-bottom:6px}
+  .dy-step .btn,.dy-step .btn-ghost{margin-top:4px}
+  .dy-sep{display:flex;align-items:center;gap:9px;color:var(--ink3);font-size:11px;margin:15px 0 13px}
+  .dy-sep::before,.dy-sep::after{content:"";flex:1;height:1px;background:var(--line)}
+  #dyCookie{width:100%;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:11.5px;
+    line-height:1.6;font-family:ui-monospace,Menlo,Consolas,monospace;resize:none;outline:0;color:var(--ink2);margin:6px 0 8px}
+  #dyCookie:focus{border-color:rgba(31,196,94,.5);box-shadow:0 0 0 3px rgba(31,196,94,.12)}
+  .dy-state{font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.6;min-height:17px}
+  .dy-state.ok{color:var(--green-d)}
+  .dy-state.err{color:#b4441a}
+  .dy-note{font-size:11px;color:var(--ink3);line-height:1.7;margin-top:14px;padding-top:11px;border-top:1px dashed var(--line)}
+  .dy-note.top{margin:0 0 12px;padding:9px 11px;border-top:0;border-radius:9px;background:rgba(49,194,124,.08);color:var(--ink2)}
+
+  /* ---------------- 声明 ---------------- */
+  .notice-warn{margin:0 0 9px;font-size:12px;line-height:1.72;color:#8f3d13;background:#fff7ef;
+    border:1px solid rgba(196,110,40,.18);border-radius:11px;padding:9px 12px}
+  .card .notice-more{border:0;background:transparent;padding:0;color:var(--green-d);font-size:12.5px;font-weight:700}
+  .legal-foot{text-align:center;font-size:11px;color:var(--ink3);line-height:1.85;padding:2px 14px 22px}
+  .legal-foot b{display:block;font-weight:600;color:#8b919c;margin-bottom:3px}
+
+  .notice-mask{position:fixed;inset:0;z-index:120;background:rgba(8,10,14,.52);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:16px}
+  .notice-mask[hidden]{display:none}
+  .notice-box{width:100%;max-width:520px;max-height:88vh;background:#fff;border-radius:20px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(8,10,14,.38);
+    animation:noticeIn .3s cubic-bezier(.32,.72,0,1)}
+  @keyframes noticeIn{from{opacity:0;transform:translateY(16px) scale(.985)}}
+  .notice-head{padding:19px 20px 12px;flex:none;border-bottom:1px solid var(--line)}
+  .notice-head h2{font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .notice-head p{font-size:12px;color:var(--ink3);margin-top:5px}
+  .notice-body{overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 20px 2px;flex:1;
+    font-size:12.5px;line-height:1.78;color:var(--ink2)}
+  .notice-body h4{font-size:12.8px;font-weight:800;color:var(--ink);margin:14px 0 5px}
+  .notice-body h4:first-child{margin-top:0}
+  .notice-body p{margin:0 0 5px}
+  .notice-body ol{margin:0;padding-left:17px}
+  .notice-body li{margin-bottom:5px}
+  .notice-body .hl{color:var(--ink);font-weight:700}
+  .notice-foot{padding:11px 20px calc(14px + var(--safe));flex:none;border-top:1px solid var(--line);background:#fff}
+  .notice-legal{font-size:10.5px;color:var(--ink3);line-height:1.62;margin-bottom:9px}
+  .notice-foot .btn{width:100%;padding:12px}
+  .notice-foot .btn[disabled]{opacity:.55}
+
+  /* ---------------- 歌单（我的歌单 / QQ 热门歌单） ---------------- */
+  .pl-head{display:flex;align-items:center;gap:9px;margin:26px 4px 11px}
+  .pl-head h3{font-size:13.5px;font-weight:800}
+  .pl-head .sub{font-size:11px;color:var(--ink3);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pl-head .btn-ghost{margin-left:auto;flex:none}
+  .pl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px}
+  @media (min-width:640px){.pl-grid{grid-template-columns:repeat(4,1fr)}}
+  .pl-card{border:0;background:transparent;padding:0;text-align:left;display:block;width:100%}
+  .pl-card .cv{position:relative;width:100%;aspect-ratio:1/1;border-radius:15px;overflow:hidden;background:#e8ebf0;
+    box-shadow:0 3px 12px rgba(17,19,24,.08)}
+  .pl-card .cv img{width:100%;height:100%;object-fit:cover;display:block}
+  .pl-card .cv .ph{position:absolute;inset:0;display:grid;place-items:center;background:#fff;color:#2a2f38;
+    font-weight:800;font-size:22px;letter-spacing:-.02em;box-shadow:inset 0 0 0 1px rgba(17,19,24,.08)}
+  .pl-card .cv .cnt{position:absolute;left:7px;bottom:7px;display:flex;align-items:center;gap:4px;
+    font-size:10px;font-weight:600;color:#fff;background:rgba(10,12,16,.42);border-radius:999px;
+    padding:2px 8px;backdrop-filter:blur(6px);font-variant-numeric:tabular-nums}
+  .pl-card .cv .cnt svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  .pl-card .nm{margin-top:8px;font-size:12.5px;font-weight:600;line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pl-card .by{margin-top:3px;font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .pl-strip{display:flex;gap:13px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}
+  .pl-strip::-webkit-scrollbar{display:none}
+  .pl-chip{flex:none;width:102px;border:0;background:transparent;padding:0;text-align:left}
+  .pl-chip .cv{width:102px;height:102px;border-radius:14px;overflow:hidden;background:#e8ebf0;position:relative;
+    display:grid;place-items:center;box-shadow:0 2px 9px rgba(17,19,24,.06)}
+  .pl-chip .cv img{width:100%;height:100%;object-fit:cover;display:block}
+  .pl-chip .cv .ph{position:absolute;inset:0;display:grid;place-items:center;background:#fff;color:#2a2f38;
+    font-weight:800;font-size:17px;box-shadow:inset 0 0 0 1px rgba(17,19,24,.08)}
+  .pl-chip .cv .cnt{position:absolute;right:6px;bottom:6px;font-size:9.5px;font-weight:700;color:#fff;
+    background:rgba(10,12,16,.42);border-radius:999px;padding:1px 6px;backdrop-filter:blur(6px)}
+  .pl-chip .nm{margin-top:6px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pl-chip .ct{font-size:10.5px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pl-chip.new .cv{border:1px dashed rgba(17,19,24,.2);background:#fff;color:var(--green-d);box-shadow:none}
+  .pl-chip.new .cv svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+
+  .pl-hero{display:flex;gap:13px;padding:2px 6px 13px;flex:none}
+  .pl-hero .cv{width:86px;height:86px;border-radius:14px;overflow:hidden;flex:none;background:#e8ebf0;position:relative}
+  .pl-hero .cv img{width:100%;height:100%;object-fit:cover;display:block}
+  .pl-hero .cv .ph{position:absolute;inset:0;display:grid;place-items:center;background:#fff;color:#2a2f38;
+    font-weight:800;font-size:20px;box-shadow:inset 0 0 0 1px rgba(17,19,24,.08)}
+  .pl-hero .meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
+  .pl-hero h3{font-size:15.5px;font-weight:800;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow:hidden}
+  .pl-hero p{font-size:11.5px;color:var(--ink3);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow:hidden}
+  .pl-hero .tags{display:flex;gap:6px;margin-top:1px}
+  .pl-hero .tags i{font-style:normal;font-size:10px;font-weight:600;color:var(--ink2);
+    background:rgba(17,19,24,.05);border-radius:999px;padding:2px 8px}
+  .pl-ops{display:flex;gap:8px;padding:0 6px 12px;flex:none;flex-wrap:wrap}
+  .pl-ops .btn{padding:9px 17px;font-size:13px;border-radius:11px}
+  .pl-ops .btn-ghost{padding:9px 14px;border-radius:11px}
+  .pl-ops .btn.danger{background:#fff;color:#e0344b;border:1px solid rgba(224,52,75,.28)}
+  .pl-ops .btn.danger:active{background:rgba(224,52,75,.08)}
+
+  /* 单曲操作菜单 */
+  .act-song{padding:0 18px 6px;font-size:11.5px;color:var(--ink3);flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .act-list{display:flex;flex-direction:column;padding:0 8px calc(10px + var(--safe))}
+  .act-list button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;
+    text-align:left;padding:13px 12px;border-radius:12px;font-size:14px;font-weight:600}
+  .act-list button:active{background:rgba(17,19,24,.055)}
+  .act-list button svg{width:19px;height:19px;fill:none;stroke:var(--ink2);stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .act-list button.danger{color:#e0344b}
+  .act-list button.danger svg{stroke:#e0344b}
+
+  /* 选择歌单 */
+  .pick-row{display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:13px;cursor:pointer}
+  .pick-row:active{background:rgba(17,19,24,.055)}
+  .pick-row .cv{width:44px;height:44px;border-radius:11px;overflow:hidden;background:#e8ebf0;position:relative;flex:none}
+  .pick-row .cv img{width:100%;height:100%;object-fit:cover;display:block}
+  .pick-row .cv .ph{position:absolute;inset:0;display:grid;place-items:center;background:#fff;color:#2a2f38;
+    font-weight:800;font-size:13px;box-shadow:inset 0 0 0 1px rgba(17,19,24,.08)}
+  .pick-row .cv.plus{display:grid;place-items:center;border:1px dashed rgba(17,19,24,.2);color:var(--green-d);background:#fff}
+  .pick-row .cv.plus svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+  .pick-row .t{flex:1;min-width:0}
+  .pick-row .t b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pick-row .t span{font-size:11.5px;color:var(--ink3)}
+
+  /* 命名弹层 */
+  .name-mask{position:fixed;inset:0;z-index:130;background:rgba(8,10,14,.5);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  .name-mask[hidden]{display:none}
+  .name-box{width:min(380px,94vw);background:#fff;border-radius:18px;padding:19px 18px 15px;
+    box-shadow:0 22px 60px rgba(8,10,14,.4);animation:noticeIn .24s cubic-bezier(.32,.72,0,1)}
+  .name-box h3{font-size:16px;font-weight:800;margin-bottom:4px}
+  .name-box p{font-size:12px;color:var(--ink3);margin-bottom:12px}
+  .name-box input{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;
+    outline:0;color:var(--ink);background:#fff}
+  .name-box input:focus{border-color:rgba(31,196,94,.5);box-shadow:0 0 0 3px rgba(31,196,94,.12)}
+  .name-box textarea{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:12.5px;
+    outline:0;color:var(--ink);background:#fff;resize:vertical;min-height:130px;line-height:1.55;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
+  .name-box textarea:focus{border-color:rgba(83,74,183,.55);box-shadow:0 0 0 3px rgba(83,74,183,.12)}
+  .name-btns{display:flex;gap:9px;margin-top:14px}
+  .name-btns .btn-ghost{flex:1;padding:11px}
+  .name-btns .btn{flex:1;padding:11px}
+
+  .sheet-f-row{display:flex;gap:9px}
+  .sheet-f-row .btn{flex:1}
+  .sheet-f-row .btn-ghost{flex:1;padding:11px;border-radius:12px}
+
+  /* ---------------- 桌面 ---------------- */
+  @media (min-width:760px){
+    .pills{display:flex}
+    .tabbar{display:none}
+    .mini{left:50%;right:auto;bottom:16px;width:min(680px,calc(100vw - 24px));transform:translateX(-50%)}
+    body{padding-bottom:132px}
+    main{padding-top:18px}
+    .hero h1{font-size:25px}
+    .sheet{left:50%;right:auto;width:min(600px,92vw);bottom:22px;border-radius:22px;
+      transform:translate(-50%,101%)}
+    .sheet.on{transform:translate(-50%,0)}
+    .np-body{padding-left:40px;padding-right:40px}
+    .toast{bottom:104px}
+    .disc{width:min(300px,42vh)}
+    .np-meta h1{font-size:23px}
+  }
+  @media (max-width:759px){
+    .vol{display:none}
+  }
+  @media (max-width:380px){
+    .r-art{width:42px;height:42px}
+    .r-name{font-size:14px}
+    .brand span{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="banner" id="banner" hidden>
+  <span>没连上音乐服务</span>
+  <button id="bannerGo">重试</button>
+</div>
+
+<header class="top">
+  <div class="topin">
+    <div class="brand">
+      <i><svg viewBox="0 0 24 24"><path d="M5 13v-1a7 7 0 0 1 14 0v1"/><rect x="3.5" y="13" width="4" height="6" rx="1.6"/><rect x="16.5" y="13" width="4" height="6" rx="1.6"/></svg></i>
+      <span>耳边</span>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+      <input id="topKw" type="search" placeholder="搜索歌曲、歌手" autocomplete="off" enterkeyhint="search">
+    </label>
+    <button class="avatar" id="avatarBtn" aria-label="我的">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-3.6 3.6-5.6 7.2-5.6s6.6 2 7.2 5.6"/></svg>
+    </button>
+  </div>
+  <nav class="pills" id="pills">
+    <button class="pill on" data-view="discover">发现</button>
+    <button class="pill" data-view="search">搜索</button>
+    <button class="pill" data-view="mine">我的</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 发现 -->
+  <section class="view" id="vDiscover">
+    <div class="hero">
+      <div>
+        <h1>猜你喜欢</h1>
+        <p id="recWhy">按你的听歌口味，每批 10 首</p>
+      </div>
+      <button class="btn-ghost" id="recNext">换一批</button>
+    </div>
+    <div class="rows" id="recList"><p class="empty">正在按你的口味挑歌…</p></div>
+
+    <div class="pl-head">
+      <h3>QQ 音乐热门歌单</h3>
+      <span class="sub" id="hotPlSub">实时读取</span>
+      <button class="btn-ghost" id="plRefresh">换一批</button>
+    </div>
+    <div class="pl-grid" id="hotPl"><p class="empty">正在从 QQ 音乐读取热门歌单…</p></div>
+  </section>
+
+  <!-- 搜索 -->
+  <section class="view" id="vSearch" hidden>
+    <div class="sbar">
+      <input id="kw" type="search" placeholder="搜索歌曲、歌手" autocomplete="off" enterkeyhint="search">
+      <button id="searchBtn">搜索</button>
+    </div>
+    <div class="src-tabs" id="srcTabs">
+      <button class="stag on" data-src="all">全部</button>
+      <button class="stag" data-src="qq">QQ 音乐</button>
+      <button class="stag" data-src="netease">网易云</button>
+      <button class="stag" data-src="bili">B 站</button>
+      <button class="stag" data-src="douyin">抖音</button>
+    </div>
+    <p class="src-hint" id="srcHint" hidden></p>
+    <div id="sugBox">
+      <div class="sect-h">热门搜索</div>
+      <div class="tags" id="hotTags"></div>
+      <div class="sect-h" id="hisH" hidden>最近搜索</div>
+      <div class="tags" id="hisTags"></div>
+    </div>
+    <div id="resBox" hidden>
+      <div class="sect-h"><span id="resCount">搜索结果</span><span class="sect-tip">点歌插播 · + 加入列表</span></div>
+      <div class="rows" id="results"></div>
+    </div>
+  </section>
+
+  <!-- 我的 -->
+  <section class="view" id="vMine" hidden>
+    <div class="profile">
+      <div class="pf-art"><svg viewBox="0 0 24 24" style="width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M5 13v-1a7 7 0 0 1 14 0v1"/><rect x="3.5" y="13" width="4" height="6" rx="1.6"/><rect x="16.5" y="13" width="4" height="6" rx="1.6"/></svg></div>
+      <div>
+        <h2 id="pfName" hidden>音乐爱好者</h2>
+        <p>数据只存在这台设备上</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div data-stat="play" role="button" title="点开查看最近播放"><b id="stPlay">0</b><span>听过 ›</span></div>
+      <div data-stat="like" role="button" title="点开查看我喜欢"><b id="stLike">0</b><span>喜欢 ›</span></div>
+      <div data-stat="queue" role="button" title="点开查看播放列表"><b id="stQueue">0</b><span>列表 ›</span></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h3>我的歌单</h3>
+        <button class="btn-ghost" id="plNew">+ 新建</button>
+      </div>
+      <div class="pl-strip" id="myPl"></div>
+      <p class="muted" id="myPlTip" style="margin:10px 0 0">把搜索结果、猜你喜欢、热门歌单里的歌收进自己的歌单；登录后自动同步到其他设备。</p>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>账号</h3></div>
+      <div class="acc-row">
+        <div class="acc-logo qq" id="accLogo">Q</div>
+        <div class="acc-info">
+          <b id="accName">未登录</b>
+          <span id="accDesc"><i class="acc-dot off"></i>数据只存在这台设备上</span>
+        </div>
+        <button class="btn-ghost" id="accBtn">登录 / 注册</button>
+      </div>
+      <p class="muted" id="accTip">用你自己的 QQ 号（或任意 5~11 位数字）当账号 + 密码注册。换手机、换电脑，用账号 + 密码登录就能找回你的喜欢、历史和播放列表。</p>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h3>音源账号</h3>
+      </div>
+      <div class="acc-row">
+        <div class="acc-logo" id="dyLogo">抖</div>
+        <div class="acc-info">
+          <b id="dyName">抖音</b>
+          <span id="dyDesc"><i class="acc-dot off"></i>未登录 · 登录后可作为备用音源</span>
+        </div>
+        <button class="btn-ghost" id="dyBtn">登录</button>
+      </div>
+      <p class="muted" id="dyTip">抖音登录态跟着你的耳边账号走，别人打开这个网站看不到、也用不了你的抖音。</p>
+    </div>
+    <div class="card">
+      <h3>本地音乐</h3>
+      <p class="muted">支持 mp3 / wav / flac / m4a / ogg，也可以把音频文件直接拖进窗口</p>
+      <button class="btn" id="addBtn">选择本地文件</button>
+      <input type="file" id="file" accept="audio/*" multiple hidden>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h3>存储与缓存</h3>
+        <button class="btn-ghost" id="cacheClean">清理</button>
+      </div>
+      <div class="cache-bar"><i id="cacheBar"></i></div>
+      <div class="cache-rows">
+        <div class="cache-row"><span>缓存占用</span><b id="cacheSize">—</b></div>
+        <div class="cache-row"><span>音频离线缓存</span><b id="audioCacheSize">—</b></div>
+        <div class="cache-row"><span>本地数据</span><b id="dataSize">—</b></div>
+        <div class="cache-row"><span>上次清理</span><b id="cacheLast">从未</b></div>
+      </div>
+      <label class="cache-auto">
+        <span>自动清理<em>超过 200MB 或 7 天没清理时，静默清一次</em></span>
+        <input type="checkbox" id="cacheAuto" checked>
+        <i></i>
+      </label>
+      <label class="cache-auto">
+        <span>音频离线缓存<em>完整听过的歌在本地存一份，下次秒开、断网也能听，上限 400MB</em></span>
+        <input type="checkbox" id="audioCacheOn" checked>
+        <i></i>
+      </label>
+      <p class="muted" id="cacheTip">清理只删临时缓存与图片，不会动你的喜欢、歌单和播放列表。</p>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h3>数据备份</h3>
+        <button class="btn-ghost" id="exportBtn">导出</button>
+      </div>
+      <p class="muted">把喜欢、歌单、播放历史打包成一份文件。换手机时在新设备上导入即可，全程不经过任何服务器。</p>
+      <button class="btn" id="importBtn">从文件导入</button>
+      <button class="btn-ghost" id="importPasteBtn" style="margin-left:8px">粘贴导入</button>
+      <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
+      <p class="muted" id="backupTip">导入是合并式：同名歌单合并歌曲，不会覆盖你在新手机上已有的数据。</p>
+    </div>
+    <div class="card" id="serverCard" hidden>
+      <div class="card-h">
+        <h3>服务器</h3>
+        <button class="btn-ghost" id="serverBtn">更换地址</button>
+      </div>
+      <p class="muted" id="serverNow">—</p>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h3>免责与版权声明</h3>
+        <button class="btn-ghost" id="openNotice">查看全文</button>
+      </div>
+      <p class="muted">本程序完全用于个人听歌，不存储、不上传、不转码任何音频；音源均按歌名/歌手信息从哔哩哔哩等第三方开放平台的公开地址实时检索并直接播放，版权归原权利人所有。</p>
+      <p class="notice-warn">严禁用于任何商业盈利目的（收费播放、广告变现、引流推广、打包售卖等）。超出个人欣赏范围的使用行为及其后果，由使用者自行承担，与开发者无关。</p>
+      <button class="notice-more" id="openNotice2">阅读完整声明 ›</button>
+    </div>
+    <p class="legal-foot"><b>仅供个人学习、研究、欣赏使用</b>依据《著作权法》第二十四条合理使用 · 音源版权归原权利人所有</p>
+  </section>
+</main>
+
+<!-- 底部迷你播放条 -->
+<div class="mini" id="mini">
+  <div class="mini-prog"><i id="miniProg"></i></div>
+  <div class="mini-in">
+    <button class="mini-l" id="miniOpen" aria-label="展开播放页">
+      <div class="mini-art" id="miniArt">
+        <img id="miniCover" alt="" style="display:none">
+        <div class="ph" id="miniPh">♪</div>
+      </div>
+      <div class="mini-t">
+        <b id="miniTitle">未在播放</b>
+        <span id="miniArtist">选一首歌开始吧</span>
+      </div>
+    </button>
+    <button class="mini-btn mini-like" id="miniLike" aria-label="喜欢"></button>
+    <button class="mini-play" id="miniPlay" aria-label="播放">
+      <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8.4 5.2v13.6c0 .5.5.9 1 .6l10.6-6.8c.4-.3.4-.9 0-1.2L9.4 4.6c-.5-.3-1 .1-1 .6z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6.6" y="4.8" width="3.8" height="14.4" rx="1.6"/><rect x="13.6" y="4.8" width="3.8" height="14.4" rx="1.6"/></svg>
+    </button>
+    <button class="mini-btn" id="miniNext" aria-label="下一首">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="16.6" y="5" width="2.4" height="14" rx="1.2"/><path d="M5 5.8v12.4L15.2 12z"/></svg>
+    </button>
+    <button class="mini-btn" id="miniList" aria-label="播放列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10.5M4 12h10.5M4 17h7"/><path d="M19.5 9.5v6.9a1.9 1.9 0 1 1-1.9-1.9"/></svg>
+    </button>
+  </div>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <button class="tb on" data-view="discover">
+    <svg viewBox="0 0 24 24"><path d="M12 3.6 4.2 10v10.2h5.4v-6h4.8v6h5.4V10z"/></svg>发现
+  </button>
+  <button class="tb" data-view="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>搜索
+  </button>
+  <button class="tb" data-view="mine">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.6-3.6 3.6-5.6 7.2-5.6s6.6 2 7.2 5.6"/></svg>我的
+  </button>
+</nav>
+
+<!-- 全屏播放页 -->
+<div class="np" id="np" aria-hidden="true">
+  <div class="np-bg" id="npBg"></div>
+  <div class="np-body">
+    <div class="np-top">
+      <button class="np-btn" id="npDown" aria-label="收起">
+        <svg viewBox="0 0 24 24"><path d="M6 9.5 12 15l6-5.5"/></svg>
+      </button>
+      <div class="np-title"><b>正在播放</b><span id="npSrc">—</span></div>
+      <button class="np-btn" id="npMore" aria-label="播放列表">
+        <svg viewBox="0 0 24 24"><path d="M4 7h10.5M4 12h10.5M4 17h7"/><path d="M19.5 9.5v6.9a1.9 1.9 0 1 1-1.9-1.9"/></svg>
+      </button>
+    </div>
+
+    <div class="np-main">
+      <div class="disc-wrap">
+        <div class="disc" id="disc">
+          <img id="npCover" alt="" style="display:none">
+          <div class="ph" id="discPh">♪</div>
+        </div>
+      </div>
+
+      <!-- 歌词（点封面 / 点「词」切换） -->
+      <div class="ly" id="ly">
+        <div class="ly-stage" id="lyStage">
+          <div class="ly-inner" id="lyInner"></div>
+          <div class="ly-msg" id="lyMsg"></div>
+        </div>
+        <div class="ly-bar">
+          <span class="hint" id="lyHint"></span>
+          <button class="ly-cal" id="lyMinus" hidden>−0.5s</button>
+          <button class="ly-cal" id="lyPlus" hidden>+0.5s</button>
+        </div>
+      </div>
+
+      <div class="np-meta">
+        <h1 id="npTitle">未在播放</h1>
+        <p id="npArtist">选一首歌开始吧</p>
+      </div>
+
+      <div class="np-seek">
+        <span id="npCur">0:00</span>
+        <div class="seek" id="seek">
+          <div class="rail"><div class="fill" id="seekFill"></div></div>
+          <div class="knob" id="seekKnob"></div>
+        </div>
+        <span id="npDur">0:00</span>
+      </div>
+
+      <div class="np-ctrl">
+        <button class="np-btn mode" id="modeBtn" aria-label="播放模式"></button>
+        <button class="np-big" id="npPrev" aria-label="上一首">
+          <svg viewBox="0 0 24 24"><rect x="5" y="5" width="2.4" height="14" rx="1.2"/><path d="M19 5.8v12.4L8.8 12z"/></svg>
+        </button>
+        <button class="np-play" id="npPlay" aria-label="播放">
+          <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8.4 5.2v13.6c0 .5.5.9 1 .6l10.6-6.8c.4-.3.4-.9 0-1.2L9.4 4.6c-.5-.3-1 .1-1 .6z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6.6" y="4.8" width="3.8" height="14.4" rx="1.6"/><rect x="13.6" y="4.8" width="3.8" height="14.4" rx="1.6"/></svg>
+        </button>
+        <button class="np-big" id="npNext" aria-label="下一首">
+          <svg viewBox="0 0 24 24"><rect x="16.6" y="5" width="2.4" height="14" rx="1.2"/><path d="M5 5.8v12.4L15.2 12z"/></svg>
+        </button>
+        <button class="np-btn" id="npList" aria-label="播放列表">
+          <svg viewBox="0 0 24 24"><path d="M4 7h10.5M4 12h10.5M4 17h7"/><path d="M19.5 9.5v6.9a1.9 1.9 0 1 1-1.9-1.9"/></svg>
+        </button>
+      </div>
+
+      <div class="np-foot">
+        <button class="like" id="npLike" aria-label="喜欢">
+          <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-9.2A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7 2.8C19 15.5 12 20 12 20z"/></svg>
+        </button>
+        <button class="ly-btn" id="lyToggle" aria-label="歌词">词</button>
+        <div class="vol">
+          <svg viewBox="0 0 24 24"><path d="M4 9.5h3l4.5-3.8v12.6L7 14.5H4z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+          <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8" aria-label="音量">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 播放列表 -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-grab"></div>
+  <div class="sheet-h">
+    <strong>播放列表</strong><span id="qCount">0 首</span>
+    <button class="btn-ghost" id="qClear">清空</button>
+  </div>
+  <div class="rows" id="queue"></div>
+  <div class="sheet-f"><div class="sheet-f-row"><button class="btn-ghost" id="qSave">存成歌单</button><button class="btn" id="addBtn2">+ 添加本地音乐</button></div></div>
+</div>
+
+<!-- 我的：最近播放 / 我喜欢（从统计卡点进来） -->
+<div class="scrim" id="mineScrim"></div>
+<div class="sheet" id="mineSheet">
+  <div class="sheet-grab"></div>
+  <div class="sheet-h">
+    <strong id="mineTitle">我喜欢</strong><span id="mineCount"></span>
+    <button class="btn-ghost" id="mineClear">清除记录</button>
+    <button class="btn-ghost" id="mineAll">全部加入</button>
+  </div>
+  <div class="rows" id="mineList"></div>
+</div>
+
+<!-- 歌单详情（我的歌单 / QQ 热门歌单共用） -->
+<div class="scrim" id="plScrim"></div>
+<div class="sheet" id="plSheet">
+  <div class="sheet-grab"></div>
+  <div class="pl-hero" id="plHero"></div>
+  <div class="pl-ops" id="plOps"></div>
+  <div class="rows" id="plSongs"></div>
+</div>
+
+<!-- 单曲操作菜单 -->
+<div class="scrim" id="actScrim"></div>
+<div class="sheet" id="actSheet">
+  <div class="sheet-grab"></div>
+  <div class="sheet-h"><strong>歌曲操作</strong><span class="act-song" id="actSong"></span></div>
+  <div class="act-list" id="actList"></div>
+</div>
+
+<!-- 加入歌单 -->
+<div class="scrim" id="pickScrim"></div>
+<div class="sheet" id="pickSheet">
+  <div class="sheet-grab"></div>
+  <div class="sheet-h">
+    <strong>加入歌单</strong><span id="pickCount"></span>
+    <button class="btn-ghost" id="pickNew" style="margin-left:auto">+ 新建歌单</button>
+  </div>
+  <div class="rows" id="pickList"></div>
+</div>
+
+<!-- 命名 / 重命名 -->
+<div class="name-mask" id="nameMask" hidden>
+  <div class="name-box">
+    <h3 id="nameTitle">新建歌单</h3>
+    <p id="nameDesc">起个名字，随时可以把歌加进来</p>
+    <input id="nameInput" maxlength="30" placeholder="歌单名，例如「深夜循环」" autocomplete="off">
+    <div class="name-btns">
+      <button class="btn-ghost" id="nameCancel">取消</button>
+      <button class="btn" id="nameOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 粘贴导入 -->
+<div class="name-mask" id="pasteMask" hidden>
+  <div class="name-box">
+    <h3>粘贴导入</h3>
+    <p>把备份内容粘贴进来，换行和空格不影响识别</p>
+    <textarea id="pasteInput" placeholder="粘贴以 {&quot;app&quot;:&quot;erbian&quot; 开头的内容"></textarea>
+    <div class="name-btns">
+      <button class="btn-ghost" id="pasteCancel">取消</button>
+      <button class="btn" id="pasteOk">导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 抖音登录 -->
+<div class="notice-mask" id="dyMask" hidden>
+  <div class="notice-box">
+    <div class="notice-head">
+      <h2>登录抖音</h2>
+      <p>登录后把抖音作为备用音源（B 站优先，抖音兜底）· 会话只与<span id="dyBindWho">本机</span>绑定</p>
+    </div>
+    <div class="notice-body">
+      <p class="dy-note top" id="dyNote">抖音登录态只属于<span id="dyNoteWho">本机设备</span>，别人打开这个网站看不到、也用不了你的抖音账号。</p>
+      <button class="btn-ghost" id="dyClaim" hidden style="width:100%;margin:0 0 12px">把这台设备已登录的抖音绑到当前账号</button>
+      <div class="dy-step">
+        <b>方式一：扫码登录（推荐）</b>
+        <p>点下面的按钮，会用本机浏览器打开抖音网页版。你在窗口里扫码登录后回到这里，程序自动读取会话——<b>不接触你的账号密码</b>。</p>
+        <button class="btn" id="dyScan">打开抖音登录窗口</button>
+        <p class="dy-state" id="dyScanState"></p>
+      </div>
+
+      <div class="dy-sep"><span>或</span></div>
+
+      <div class="dy-step">
+        <b>方式二：粘贴 Cookie</b>
+        <p>浏览器里登录抖音后，按 F12 → 网络（Network）→ 点任意 douyin.com 请求 → 复制请求头里的 Cookie 整行，粘贴到这里。</p>
+        <textarea id="dyCookie" rows="4" placeholder="sessionid=...; sid_tt=...; passport_csrf_token=..."></textarea>
+        <button class="btn-ghost" id="dyCookieSave">导入 Cookie</button>
+        <p class="dy-state" id="dyCookieState"></p>
+      </div>
+
+      <p class="dy-note">会话按「账号 / 本机设备」单独存一份（服务器 <code>.dydata/</code> 下），只对应该身份，别人读不到，也不会写进日志；退出登录即删除。<br>抖音音源取自公开视频的音轨，版权归原权利人所有，仅供个人欣赏。</p>
+    </div>
+    <div class="notice-foot">
+      <button class="btn-ghost" id="dyProbe" style="width:100%;padding:11px;margin-bottom:8px">检测抖音音源是否可用</button>
+      <button class="btn-ghost" id="dyClose" style="width:100%;padding:11px">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 账号登录 / 注册 -->
+<div class="notice-mask" id="authMask" hidden>
+  <div class="notice-box">
+    <div class="notice-head">
+      <h2 id="authTitle">耳边账号</h2>
+      <p id="authSub">登录后喜欢、历史、播放列表跟着账号走，换设备不丢</p>
+    </div>
+    <div class="notice-body">
+      <div class="auth-tabs">
+        <button class="stag on" id="authTabLogin">登录</button>
+        <button class="stag" id="authTabReg">用 QQ 号注册</button>
+      </div>
+
+      <div id="authLoginForm">
+        <div class="auth-field">
+          <label>账号</label>
+          <input id="authAccount" inputmode="numeric" autocomplete="username" placeholder="你的数字账号（如 QQ 号）">
+        </div>
+        <div class="auth-field">
+          <label>密码</label>
+          <div class="pw-wrap">
+            <input id="authPass" type="password" autocomplete="current-password" placeholder="账号密码">
+            <button type="button" class="pw-eye" id="pwEyeLogin" aria-label="显示或隐藏密码"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
+          </div>
+        </div>
+        <p class="dy-state" id="authLoginState"></p>
+      </div>
+
+      <div id="authRegForm" hidden>
+        <div class="auth-field">
+          <label>账号（5~11 位数字，比如你的 QQ 号）</label>
+          <input id="authRegAccount" inputmode="numeric" maxlength="11" placeholder="输入你想用的数字账号，如 QQ 号">
+        </div>
+        <div class="auth-field">
+          <label>昵称（可选）</label>
+          <input id="authNick" maxlength="20" placeholder="给这个账号起个名字">
+        </div>
+        <div class="auth-field">
+          <label>设置密码（至少 6 位）</label>
+          <div class="pw-wrap">
+            <input id="authPass2" type="password" autocomplete="new-password" placeholder="至少 6 位，别用太简单的">
+            <button type="button" class="pw-eye" id="pwEyeReg" aria-label="显示或隐藏密码"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
+          </div>
+        </div>
+        <p class="auth-note">账号就是你自己填的数字（用 QQ 号最好记，别人抢不走的，一个号只有一份密码）。记牢账号和密码——换手机、换电脑全靠它们找回数据。密码在本机加密保存，谁也看不到明文。</p>
+        <p class="dy-state" id="authRegState"></p>
+      </div>
+    </div>
+    <div class="notice-foot">
+      <button class="btn" id="authGo">登录</button>
+      <button class="btn-ghost" id="authClose" style="width:100%;padding:11px;margin-top:8px">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 使用与版权声明 -->
+<div class="notice-mask" id="noticeMask" hidden>
+  <div class="notice-box" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
+    <div class="notice-head">
+      <h2 id="noticeTitle">使用与版权声明</h2>
+      <p>请先阅读以下条款，点击底部按钮表示你已阅读并知悉</p>
+    </div>
+    <div class="notice-body">
+      <h4>一、使用性质</h4>
+      <p>本程序为<span class="hl">个人自用、非营利的音乐播放工具</span>，仅供本人学习、研究、欣赏已发表作品之用，不面向公众提供任何服务，不作为经营工具使用。依据《中华人民共和国著作权法》第二十四条第一款第（一）项，为个人学习、研究或者欣赏而使用他人已经发表的作品，可以不经著作权人许可，不向其支付报酬。</p>
+
+      <h4>二、音源来源</h4>
+      <ol>
+        <li>本程序<span class="hl">不存储、不上传、不制作、不转码</span>任何音频文件，自身不拥有任何音乐作品的权利；</li>
+        <li>音频由程序按歌名、歌手信息，从哔哩哔哩等第三方开放平台的公开可访问地址实时检索，由浏览器直接从第三方服务器流式播放，本程序仅提供检索与链接（转发）技术服务；</li>
+        <li>音乐作品的著作权、表演者权、录音录像制作者权等权利，均归原权利人及相应平台所有，与本程序开发者无关。</li>
+      </ol>
+
+      <h4>三、严禁商业使用</h4>
+      <p>本程序不含任何广告、付费、打赏、会员、内购功能，不销售、不租赁、不转授权、不二次分发。严禁将本程序及其检索、播放结果用于<span class="hl">任何商业盈利目的</span>，包括但不限于：收费播放、广告变现、引流推广、打包售卖、作为商业产品或服务的一部分提供。</p>
+
+      <h4>四、使用者义务</h4>
+      <p>使用者不得有下列行为：</p>
+      <ol>
+        <li>将本程序用于商业经营、收费服务或其他营利活动；</li>
+        <li>批量下载、抓取、缓存、转录、剪辑、二次上传，或以其他方式复制、传播通过本程序播放的音频；</li>
+        <li>规避第三方平台的技术措施，或删除、篡改权利管理信息；</li>
+        <li>将本程序公开部署为面向公众的在线服务，或提供给不特定多数人使用。</li>
+      </ol>
+
+      <h4>五、责任承担</h4>
+      <p>使用者应自行判断其使用行为是否符合法律规定，并独立承担由此产生的一切后果与法律责任。因超出个人欣赏范围使用（尤其是商业性使用）所产生的任何收益、索赔、损失或行政处罚，<span class="hl">均与开发者无关</span>；开发者不参与任何分成，不承担连带责任。</p>
+
+      <h4>六、侵权通知与处理</h4>
+      <p>依据《信息网络传播权保护条例》第十四条至第十七条及第二十三条，本程序作为搜索、链接技术服务提供者，在接到权利人有效通知后，将立即断开或移除相关检索入口、链接，并停止相应功能，不承担赔偿责任。权利人通知应载明权利权属证明、被控侵权内容及在本程序中的具体曲目与地址、可联系的联系方式。</p>
+      <p>投诉渠道：通过你获得本程序的渠道联系开发者（本程序不设面向公众的服务入口）。</p>
+
+      <h4>七、其他</h4>
+      <ol>
+        <li>本声明是你使用本程序的前提条件；若不同意其中任何一条，请立即停止使用并删除本程序；</li>
+        <li>程序按「现状」提供，不保证服务持续、无差错或不中断；因第三方平台接口调整、网络故障或设备原因导致的播放失败，开发者不承担责任；</li>
+        <li>本声明依据中华人民共和国法律制定与解释；如任一条款与现行法律法规相冲突，以法律法规规定为准，其余条款继续有效。</li>
+      </ol>
+    </div>
+    <div class="notice-foot">
+      <p class="notice-legal">本声明依据《中华人民共和国著作权法》第二十四条、《信息网络传播权保护条例》第十四至十七条、第二十三条等规定制定 · 更新于 2026-11-09</p>
+      <button class="btn" id="noticeOk">我已阅读并知悉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (s) { return document.querySelector(s); };
+
+  /* 本机设备号：未登录时用它把数据（尤其是抖音登录态）绑在这一台设备上 */
+  var DEVICE_ID = (function () {
+    try {
+      var k = 'listen.device.v1';
+      var d = localStorage.getItem(k);
+      if (!d || !/^w[\w-]{6,}$/.test(d)) {
+        d = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem(k, d);
+      }
+      return d;
+    } catch (e) {
+      return 'wlocal000001';
+    }
+  })();
+
+  var audio = document.createElement('audio');
+  audio.preload = 'auto';
+  audio.volume = 0.8;
+  document.body.appendChild(audio);
+
+  var el = {
+    // 顶栏 / 视图
+    topKw: $('#topKw'), pills: $('#pills'), tabbar: $('#tabbar'), avatar: $('#avatarBtn'),
+    vDiscover: $('#vDiscover'), vSearch: $('#vSearch'), vMine: $('#vMine'),
+    // 存储与缓存
+    cacheSize: $('#cacheSize'), dataSize: $('#dataSize'), cacheLast: $('#cacheLast'),
+    cacheAuto: $('#cacheAuto'), cacheClean: $('#cacheClean'), cacheBar: $('#cacheBar'),
+    audioCacheSize: $('#audioCacheSize'), audioCacheOn: $('#audioCacheOn'),
+    exportBtn: $('#exportBtn'), importBtn: $('#importBtn'), importPasteBtn: $('#importPasteBtn'),
+    importFile: $('#importFile'), backupTip: $('#backupTip'),
+    // 发现
+    recList: $('#recList'), recWhy: $('#recWhy'), recNext: $('#recNext'),
+    // 搜索
+    kw: $('#kw'), searchBtn: $('#searchBtn'), sugBox: $('#sugBox'), resBox: $('#resBox'),
+    srcTabs: $('#srcTabs'), srcHint: $('#srcHint'),
+    hotTags: $('#hotTags'), hisH: $('#hisH'), hisTags: $('#hisTags'),
+    results: $('#results'), resCount: $('#resCount'),
+    // 我的
+    stPlay: $('#stPlay'), stLike: $('#stLike'), stQueue: $('#stQueue'),
+    pfName: $('#pfName'),
+    mineSheet: $('#mineSheet'), mineScrim: $('#mineScrim'), mineTitle: $('#mineTitle'),
+    mineCount: $('#mineCount'), mineList: $('#mineList'), mineAll: $('#mineAll'), mineClear: $('#mineClear'),
+    accLogo: $('#accLogo'), accName: $('#accName'), accDesc: $('#accDesc'), accBtn: $('#accBtn'), accTip: $('#accTip'),
+    add: $('#addBtn'), add2: $('#addBtn2'), file: $('#file'),
+    // 迷你条
+    mini: $('#mini'), miniOpen: $('#miniOpen'), miniPlay: $('#miniPlay'), miniNext: $('#miniNext'),
+    miniLike: $('#miniLike'),
+    miniList: $('#miniList'), miniCover: $('#miniCover'), miniPh: $('#miniPh'), miniArt: $('#miniArt'),
+    miniTitle: $('#miniTitle'), miniArtist: $('#miniArtist'), miniProg: $('#miniProg'),
+    // 播放页
+    np: $('#np'), npDown: $('#npDown'), npMore: $('#npMore'), npBg: $('#npBg'),
+    npCover: $('#npCover'), discPh: $('#discPh'), disc: $('#disc'), npTitle: $('#npTitle'), npArtist: $('#npArtist'),
+    npSrc: $('#npSrc'), npCur: $('#npCur'), npDur: $('#npDur'), npPlay: $('#npPlay'),
+    npPrev: $('#npPrev'), npNext: $('#npNext'), npList: $('#npList'), npLike: $('#npLike'),
+    ly: $('#ly'), lyStage: $('#lyStage'), lyInner: $('#lyInner'), lyMsg: $('#lyMsg'),
+    lyHint: $('#lyHint'), lyMinus: $('#lyMinus'), lyPlus: $('#lyPlus'), lyToggle: $('#lyToggle'),
+    modeBtn: $('#modeBtn'), seek: $('#seek'), seekFill: $('#seekFill'), seekKnob: $('#seekKnob'),
+    vol: $('#vol'),
+    // 列表
+    scrim: $('#scrim'), sheet: $('#sheet'), qCount: $('#qCount'), qClear: $('#qClear'), queue: $('#queue'),
+    toast: $('#toast'), banner: $('#banner'),
+    // 声明
+    noticeMask: $('#noticeMask'), noticeOk: $('#noticeOk'),
+    openNotice: $('#openNotice'), openNotice2: $('#openNotice2'),
+    // 抖音登录
+    dyLogo: $('#dyLogo'), dyName: $('#dyName'), dyDesc: $('#dyDesc'), dyBtn: $('#dyBtn'), dyTip: $('#dyTip'),
+    dyMask: $('#dyMask'), dyScan: $('#dyScan'), dyScanState: $('#dyScanState'),
+    dyCookie: $('#dyCookie'), dyCookieSave: $('#dyCookieSave'), dyCookieState: $('#dyCookieState'),
+    dyBindWho: $('#dyBindWho'), dyNoteWho: $('#dyNoteWho'), dyClaim: $('#dyClaim'),
+    dyProbe: $('#dyProbe'), dyClose: $('#dyClose'),
+    // 账号
+    authMask: $('#authMask'), authTabLogin: $('#authTabLogin'), authTabReg: $('#authTabReg'),
+    authLoginForm: $('#authLoginForm'), authRegForm: $('#authRegForm'),
+    authAccount: $('#authAccount'), authPass: $('#authPass'), authLoginState: $('#authLoginState'),
+    authRegAccount: $('#authRegAccount'),
+    authNick: $('#authNick'), authPass2: $('#authPass2'), authRegState: $('#authRegState'),
+    authGo: $('#authGo'), authClose: $('#authClose'), authSub: $('#authSub'),
+    // 歌单
+    hotPl: $('#hotPl'), hotPlSub: $('#hotPlSub'), plRefresh: $('#plRefresh'),
+    myPl: $('#myPl'), myPlTip: $('#myPlTip'), plNew: $('#plNew'), qSave: $('#qSave'),
+    plSheet: $('#plSheet'), plScrim: $('#plScrim'), plHero: $('#plHero'), plOps: $('#plOps'), plSongs: $('#plSongs'),
+    actSheet: $('#actSheet'), actScrim: $('#actScrim'), actSong: $('#actSong'), actList: $('#actList'),
+    pickSheet: $('#pickSheet'), pickScrim: $('#pickScrim'), pickList: $('#pickList'),
+    pickNew: $('#pickNew'), pickCount: $('#pickCount'),
+    nameMask: $('#nameMask'), nameTitle: $('#nameTitle'), nameDesc: $('#nameDesc'),
+    nameInput: $('#nameInput'), nameOk: $('#nameOk'), nameCancel: $('#nameCancel'),
+    pasteMask: $('#pasteMask'), pasteInput: $('#pasteInput'), pasteOk: $('#pasteOk'), pasteCancel: $('#pasteCancel')
+  };
+
+  var S = {
+    tracks: [], results: [], cur: -1, playing: false,
+    mode: 0,              // 0 列表循环 / 1 单曲循环 / 2 随机
+    seeking: false, dragRatio: 0, view: 'discover',
+    src: 'all',           // 搜索音源：all / netease / bili / douyin
+    failStreak: 0         // 连续解析失败次数，用于自动跳过坏歌
+  };
+
+  /* ---------------- 本地口味画像 ---------------- */
+  var PROFILE_KEY = 'listen.profile.v1';
+  var HIS_KEY = 'listen.history.v1';
+  var P = { plays: [], liked: [], skipped: [], playlists: [] };
+  try {
+    var saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+    if (saved && typeof saved === 'object') {
+      P.plays = saved.plays || [];
+      P.liked = saved.liked || [];
+      P.skipped = saved.skipped || [];
+      P.playlists = Array.isArray(saved.playlists) ? saved.playlists : [];
+    }
+  } catch (e) {}
+
+  function saveProfile() {
+    try {
+      P.plays = P.plays.slice(-20);     // 播放历史只保留最近 20 条
+      P.liked = P.liked.slice(-500);
+      P.skipped = P.skipped.slice(-200);
+      P.playlists = myPlaylists().slice(0, 50);
+      P.playlists.forEach(function (pl) { pl.songs = (pl.songs || []).slice(0, 300); });
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(P));
+    } catch (e) {}
+    syncUpload();   // 有任何口味变化就同步到服务，其他设备共享
+  }
+
+  function keyOf(s) {
+    return String(s || '').toLowerCase().replace(/[\s\-–—_·、,，.。!！?？'"“”《》【】()（）]/g, '');
+  }
+
+  /* ---------------- 多设备数据同步 ----------------
+   * 数据存在本机服务上并按账号隔离：登录同一账号的设备共享一份数据。
+   * 未登录时数据只留在本机。 */
+  var SYNC = { timer: null, ready: false };
+
+  /* 账号（QQ 号式：数字账号 + 密码） */
+  var AUTH = { account: '', token: '', nickname: '' };
+  var AUTH_KEY = 'listen.auth.v1';
+  try {
+    var savedAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+    if (savedAuth && savedAuth.token) AUTH = savedAuth;
+  } catch (e) {}
+
+  function saveAuth() {
+    try { localStorage.setItem(AUTH_KEY, JSON.stringify(AUTH)); } catch (e) {}
+  }
+
+  function serializeQueue() {
+    return S.tracks.filter(function (t) { return t.remote; }).map(function (t) {
+      return { title: t.title, artist: t.artist || '', cover: t.cover || '', dur: t.dur || 0,
+        source: t.source || '', songId: t.songId || null, bvid: t.bvid || null, page: t.page || null, cid: t.cid || null, awemeId: t.awemeId || null, qqMid: t.qqMid || null };
+    });
+  }
+
+  function syncUpload() {
+    if (!SYNC.ready || !AUTH.token) return;
+    clearTimeout(SYNC.timer);
+    SYNC.timer = setTimeout(function () {
+      fetch(api('/api/sync'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: AUTH.token,
+          profile: { plays: P.plays, liked: P.liked, skipped: P.skipped },
+          queue: serializeQueue(),
+          playlists: serializePlaylists()
+        })
+      }).catch(function () {});
+    }, 1200);
+  }
+
+  function syncDownload() {
+    if (!AUTH.token) return Promise.resolve();
+    return apiReady.then(function (st) {
+      if (!st.ok) return null;
+      SYNC.ready = true;
+      return fetch(api('/api/sync?token=' + encodeURIComponent(AUTH.token))).then(function (r) { return r.json(); });
+    })
+      .then(function (j) { if (j && j.data) mergeRemote(j.data); })
+      .catch(function () {});
+  }
+
+  function mergeRemote(d) {
+    var rp = d.profile || {};
+    var likedAdded = 0;
+    (rp.liked || []).forEach(function (x) {
+      if (x && x.title && !isLiked(x)) { P.liked.push(x); likedAdded++; }
+    });
+    var seen = {};
+    P.plays.forEach(function (x) { seen[keyOf(x.title) + '|' + keyOf(x.artist) + '|' + (x.ts || 0)] = 1; });
+    (rp.plays || []).forEach(function (x) {
+      if (x && x.title) {
+        var k = keyOf(x.title) + '|' + keyOf(x.artist) + '|' + (x.ts || 0);
+        if (!seen[k]) { seen[k] = 1; P.plays.push(x); }
+      }
+    });
+    P.plays.sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+    P.plays = P.plays.slice(-20);
+    var seenS = {};
+    P.skipped.forEach(function (x) { seenS[keyOf(x.title) + '|' + keyOf(x.artist)] = 1; });
+    (rp.skipped || []).forEach(function (x) {
+      if (x && x.title) {
+        var k2 = keyOf(x.title) + '|' + keyOf(x.artist);
+        if (!seenS[k2]) { seenS[k2] = 1; P.skipped.push(x); }
+      }
+    });
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(P)); } catch (e) {}
+    // 播放列表：本地缺的从云端补到末尾
+    var qAdded = 0;
+    (d.queue || []).forEach(function (it) {
+      if (!it || !it.title || findQueued(it)) return;
+      queueMeta(it, true);
+      qAdded++;
+    });
+    // 我的歌单：同 id 合并歌曲，缺的整个补进来
+    var plAdded = 0, plSongs = 0;
+    (d.playlists || []).forEach(function (rp2) {
+      if (!rp2 || !rp2.name) return;
+      var local = null;
+      for (var i = 0; i < myPlaylists().length; i++) if (myPlaylists()[i].id === rp2.id) local = myPlaylists()[i];
+      if (!local) {
+        local = { id: rp2.id || plNewId(), name: rp2.name, cover: rp2.cover || '', ts: rp2.ts || Date.now(), songs: [] };
+        myPlaylists().push(local);
+        plAdded++;
+      }
+      (rp2.songs || []).forEach(function (s) {
+        if (!s || !s.title) return;
+        if (plHas(local, s)) return;
+        local.songs.push(plNormSong(s));
+        plSongs++;
+      });
+    });
+    if (plAdded || plSongs) {
+      saveProfile();
+      renderMyPl();
+    }
+    if (likedAdded || qAdded || plAdded || plSongs) {
+      renderQueue();
+      renderStats();
+      renderLikes();
+      toast('已同步其他设备：' + (qAdded ? qAdded + ' 首进列表 ' : '') + (likedAdded ? likedAdded + ' 首喜欢' : '') +
+        (plAdded || plSongs ? ' ' + plAdded + ' 个歌单' : ''));
+    }
+  }
+
+  /* 口味画像权重：喜欢 +3、听过 +1、跳过 −2，全部按 14 天半衰期做时间衰减 */
+  function artistWeights() {
+    var m = {}, now = Date.now(), HALF = 14 * 864e5;
+    function dec(ts) { return Math.pow(0.5, Math.max(0, (now - (ts || now)) / HALF)); }
+    P.liked.forEach(function (x) { if (x.artist) m[x.artist] = (m[x.artist] || 0) + 3 * dec(x.ts); });
+    P.plays.forEach(function (x) { if (x.artist) m[x.artist] = (m[x.artist] || 0) + 1 * dec(x.ts); });
+    P.skipped.forEach(function (x) { if (x.artist) m[x.artist] = (m[x.artist] || 0) - 2 * dec(x.ts); });
+    return m;
+  }
+
+  function topArtists(n) {
+    var m = artistWeights();
+    return Object.keys(m)
+      .filter(function (a) { return a && a.length <= 30 && m[a] > 0.3; })   // 分数太低（最近总跳过）不进种子
+      .sort(function (a, b) { return m[b] - m[a]; })
+      .slice(0, n || 3);
+  }
+
+  /* 曲风标签挖掘：从喜欢/常听的歌名、歌手里识别曲风词，跳过负样本 */
+  var GENRES = ['钢琴', '吉他', '民谣', '摇滚', '说唱', '嘻哈', '电音', '电子', '古风', '国风', '粤语', '日语', '英语', '韩语', '轻音乐', '纯音乐', '爵士', '蓝调', '后摇', '金属', '朋克', '乡村', 'R&B', '流行', '老歌', '小提琴', '古筝', '笛子', '唢呐', '钢琴曲', '学习', '助眠'];
+  function tasteTags(n) {
+    var m = {}, now = Date.now(), HALF = 14 * 864e5;
+    function feed(text, w, ts) {
+      var t = String(text || '');
+      if (!t) return;
+      var dec = Math.pow(0.5, Math.max(0, (now - (ts || now)) / HALF));
+      for (var i = 0; i < GENRES.length; i++) {
+        if (t.indexOf(GENRES[i]) >= 0) m[GENRES[i]] = (m[GENRES[i]] || 0) + w * dec;
+      }
+    }
+    P.liked.forEach(function (x) { feed((x.title || '') + ' ' + (x.artist || ''), 3, x.ts); });
+    P.plays.forEach(function (x) { feed((x.title || '') + ' ' + (x.artist || ''), 1, x.ts); });
+    P.skipped.forEach(function (x) { feed(x.title || '', -2, x.ts); });
+    return Object.keys(m)
+      .filter(function (k) { return m[k] > 0; })
+      .sort(function (a, b) { return m[b] - m[a]; })
+      .slice(0, n || 2);
+  }
+
+  /* ---------------- 接口探测 ---------------- */
+  var apiState = { base: '', ok: false };
+
+  function probeApi(base) {
+    return fetch(withShare(base + '/api/health'), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? base : null; })
+      .catch(function () { return null; });
+  }
+
+  var apiReady = (function () {
+    var isHttp = location.protocol === 'http:' || location.protocol === 'https:';
+    var chain = isHttp
+      ? probeApi('').then(function (b) { return b !== null ? '' : probeApi('http://127.0.0.1:5599'); })
+      : probeApi('http://127.0.0.1:5599');
+    return chain.then(function (base) {
+      apiState.base = base || '';
+      apiState.ok = base !== null;
+      return apiState;
+    });
+  })();
+
+  /**
+   * 所有 /api 请求自动带上身份（账号 token + 本机设备号）：
+   * 服务端据此把抖音登录态、缓存按人隔离 —— 别人打开同一网址读不到你的抖音。
+   */
+  function shareCode() {
+    try { return new URLSearchParams(location.search).get('sharecode') || ''; } catch (e) { return ''; }
+  }
+  // 托管平台对站点全部请求校验 sharecode，站内相对地址统一补上
+  function withShare(u) {
+    if (!u || u.indexOf('/api/') !== 0) return u;
+    var sc = shareCode();
+    if (!sc) return u;
+    return u + (u.indexOf('?') >= 0 ? '&' : '?') + 'sharecode=' + encodeURIComponent(sc);
+  }
+  function api(path) {
+    var base = apiState.base || '';
+    if (path.indexOf('/api/') !== 0) return base + path;
+    var sep = path.indexOf('?') >= 0 ? '&' : '?';
+    var extra = 'dev=' + encodeURIComponent(DEVICE_ID);
+    if (AUTH && AUTH.token) extra += '&token=' + encodeURIComponent(AUTH.token);
+    return base + withShare(path + sep + extra);
+  }
+
+  var uid = 0;
+  var AUDIO_RE = /\.(mp3|wav|flac|m4a|aac|ogg|oga|opus|wma|aiff?)$/i;
+
+  function fmt(t) {
+    if (!isFinite(t) || t < 0) t = 0;
+    var m = Math.floor(t / 60), s = Math.floor(t % 60);
+    return m + ':' + (s < 10 ? '0' + s : s);
+  }
+  function hueOf(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+    return h;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  /* ---------------- 音源平台标识（所有地方统一显示） ---------------- */
+  var SRC_NAME = { bilibili: 'B 站', netease: '网易云', douyin: '抖音', qq: 'QQ 音乐' };
+  var SRC_CLS = { bilibili: 'bili', netease: 'ne', douyin: 'dy', qq: 'qq' };
+
+  function srcName(source) { return SRC_NAME[source] || ''; }
+
+  /** 列表行里的音源小徽章 */
+  function srcBadge(source) {
+    var n = SRC_NAME[source];
+    if (!n) return '';
+    return '<i class="src ' + (SRC_CLS[source] || 'loc') + '">' + n + '</i>';
+  }
+
+  /** 正在播放条 / 播放页用的一段文字，如「孙燕姿 · B 站」 */
+  function srcTextOf(t) {
+    if (!t) return '';
+    if (!t.remote) return '本地';
+    var n = SRC_NAME[t.source];
+    return n || '在线';
+  }
+  function current() {
+    for (var i = 0; i < S.tracks.length; i++) if (S.tracks[i].id === S.cur) return S.tracks[i];
+    return null;
+  }
+  function indexOf(id) {
+    for (var i = 0; i < S.tracks.length; i++) if (S.tracks[i].id === id) return i;
+    return -1;
+  }
+  /* 没有封面时，用歌名顶上（白底黑字，取前两个字） */
+  function coverText(title) {
+    var s = String(title || '').replace(/[（(【\[][^）)】\]]*[）)】\]]/g, '').replace(/[\s·\-—_/|]+/g, '');
+    if (!s) s = String(title || '').replace(/\s+/g, '');
+    return s ? s.slice(0, 2) : '♪';
+  }
+  function artHtml(cover, title) {
+    if (cover) {
+      return '<img src="' + esc(cover) + '" loading="lazy" referrerpolicy="no-referrer" alt="">';
+    }
+    return '<span class="ph">' + esc(coverText(title)) + '</span>';
+  }
+
+  /* 封面图取不到（防盗链 / 404）时，同样退回白底歌名 */
+  document.addEventListener('error', function (e) {
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG') return;
+    if (img.id === 'npCover' || img.id === 'miniCover') {
+      var t = current();
+      paintCover('', t ? t.title : '', t ? t.hue : 210);
+      return;
+    }
+    var box = img.parentNode;
+    if (!box || !box.classList || !box.classList.contains('r-art')) return;
+    var row = box.parentNode;
+    var nameEl = row && row.querySelector ? row.querySelector('.r-name') : null;
+    var span = document.createElement('span');
+    span.className = 'ph';
+    span.textContent = coverText(nameEl ? nameEl.textContent : '');
+    box.replaceChild(span, img);
+  }, true);
+
+  /* ---------------- 图标 ---------------- */
+  var ICON = {
+    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 5.6v12.8L19 12z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>',
+    nextAdd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5.5v13"/><path d="M6.5 12H16"/><path d="m12.5 8 3.5 4-3.5 4"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9.5 17 19 7"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20s-7-4.5-7-9.2A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7 2.8C19 15.5 12 20 12 20z"/></svg>',
+    skip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.4" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.6" cy="12" r="1.7"/></svg>',
+    listPlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6.5h9M4 11h9M4 15.5h5.5"/><path d="M17.5 10.5v7M14 14h7"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"/><path d="M9.5 7V5.4c0-.8.6-1.4 1.4-1.4h2.2c.8 0 1.4.6 1.4 1.4V7"/><path d="M6.5 7l.9 12c.1.9.8 1.5 1.7 1.5h5.8c.9 0 1.6-.6 1.7-1.5L17.5 7"/></svg>',
+    head: '<svg viewBox="0 0 24 24"><path d="M5 13v-1a7 7 0 0 1 14 0v1"/><rect x="3.5" y="13" width="4" height="6" rx="1.6"/><rect x="16.5" y="13" width="4" height="6" rx="1.6"/></svg>',
+    playO: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8.6 5.6v12.8L19 12z"/></svg>',
+    mode: [
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.8l3.4 3.4L17 9.6"/><path d="M3.6 12.4V10a4 4 0 0 1 4-4h12.8"/><path d="M7 21.2 3.6 17.8 7 14.4"/><path d="M20.4 11.6V14a4 4 0 0 1-4 4H3.6"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.8l3.4 3.4L17 9.6"/><path d="M3.6 12.4V10a4 4 0 0 1 4-4h12.8"/><path d="M7 21.2 3.6 17.8 7 14.4"/><path d="M20.4 11.6V14a4 4 0 0 1-4 4H3.6"/><text x="12" y="15.4" font-size="7.2" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">1</text></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16.6 3.6h4.6v4.6"/><path d="M21.2 3.6 14 10.8"/><path d="M16.6 20.4h4.6v-4.6"/><path d="M21.2 20.4 3 2.2"/><path d="M3 21.4 8.4 16"/></svg>'
+    ]
+  };
+
+  /* ---------------- 视图切换 ---------------- */
+  function switchView(name, silent) {
+    S.view = name;
+    el.vDiscover.hidden = name !== 'discover';
+    el.vSearch.hidden = name !== 'search';
+    el.vMine.hidden = name !== 'mine';
+    var ps = el.pills.querySelectorAll('.pill');
+    for (var i = 0; i < ps.length; i++) ps[i].classList.toggle('on', ps[i].getAttribute('data-view') === name);
+    var ts = el.tabbar.querySelectorAll('.tb');
+    for (var k = 0; k < ts.length; k++) ts[k].classList.toggle('on', ts[k].getAttribute('data-view') === name);
+    if (name === 'mine') { renderStats(); renderMyPl(); renderCacheCard(); }
+    if (name === 'discover') {
+      loadHotPl(false);                                  // 每次回到发现页都读一遍 QQ 热门歌单
+      if (!R.list.length && !R.loading) loadRecs();
+    }
+    if (name === 'search' && !silent) setTimeout(function () { el.kw.focus(); }, 120);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  var navBtns = el.pills.querySelectorAll('.pill');
+  for (var ni = 0; ni < navBtns.length; ni++) {
+    navBtns[ni].addEventListener('click', function () { switchView(this.getAttribute('data-view')); });
+  }
+  var tabBtns = el.tabbar.querySelectorAll('.tb');
+  for (var ti = 0; ti < tabBtns.length; ti++) {
+    tabBtns[ti].addEventListener('click', function () { switchView(this.getAttribute('data-view')); });
+  }
+  el.avatar.addEventListener('click', function () { switchView('mine'); });
+
+  /* ---------------- 播放页 / 列表 开关 ---------------- */
+  function openNP() {
+    el.np.classList.add('on');
+    el.np.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('np-open');
+  }
+  function closeNP() {
+    el.np.classList.remove('on');
+    el.np.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('np-open');
+  }
+  function openSheet() {
+    el.sheet.classList.add('on');
+    el.scrim.classList.add('on');
+    renderQueue();
+  }
+  function closeSheet() {
+    el.sheet.classList.remove('on');
+    el.scrim.classList.remove('on');
+  }
+
+  el.miniOpen.addEventListener('click', openNP);
+  el.npDown.addEventListener('click', closeNP);
+  el.miniList.addEventListener('click', openSheet);
+  el.npList.addEventListener('click', openSheet);
+  el.npMore.addEventListener('click', openSheet);
+  el.scrim.addEventListener('click', closeSheet);
+
+  // 播放页下滑关闭
+  (function () {
+    var startY = 0, dragging = false, dy = 0;
+    el.np.addEventListener('touchstart', function (e) {
+      if (!e.target.closest('.np-body')) return;
+      if (e.target.closest('.seek')) return;
+      startY = e.touches[0].clientY; dragging = true; dy = 0;
+      el.np.style.transition = 'none';
+    }, { passive: true });
+    el.np.addEventListener('touchmove', function (e) {
+      if (!dragging) return;
+      dy = e.touches[0].clientY - startY;
+      if (dy > 0) el.np.style.transform = 'translateY(' + dy + 'px)';
+    }, { passive: true });
+    el.np.addEventListener('touchend', function () {
+      if (!dragging) return;
+      dragging = false;
+      el.np.style.transition = '';
+      el.np.style.transform = '';
+      if (dy > 90) closeNP();
+    });
+  })();
+
+  /* ---------------- 队列渲染 ---------------- */
+  function renderQueue() {
+    el.qCount.textContent = S.tracks.length + ' 首';
+    el.stQueue.textContent = S.tracks.length;
+    if (!S.tracks.length) {
+      el.queue.innerHTML = '<p class="empty">列表还是空的<br>去「发现」或「搜索」挑几首</p>';
+      return;
+    }
+    var out = '';
+    for (var i = 0; i < S.tracks.length; i++) {
+      var t = S.tracks[i];
+      var on = t.id === S.cur;
+      var idx = on
+        ? '<div class="r-idx"><div class="bars"><i></i><i></i><i></i></div></div>'
+        : '<div class="r-idx">' + (i + 1) + '</div>';
+      var badge = t.remote
+        ? (srcBadge(t.source) || '<i class="src loc">在线</i>')
+        : '<i class="src loc">本地</i>';
+      out += '<div class="row' + (on ? ' on' : '') + '" data-id="' + t.id + '">' +
+        idx +
+        '<div class="r-art">' + artHtml(t.cover, t.title) + '</div>' +
+        '<div class="r-info"><div class="r-name">' + esc(t.title) + '</div>' +
+        '<div class="r-sub">' + esc(t.artist || '未知艺术家') + badge + '</div></div>' +
+        '<span class="r-dur">' + (t.dur ? fmt(t.dur) : '--:--') + '</span>' +
+        '<button class="del" data-del="' + t.id + '" aria-label="移除">✕</button>' +
+        '</div>';
+    }
+    el.queue.innerHTML = out;
+    syncUpload();   // 列表变化同步到服务，其他设备打开时能看到
+  }
+
+  /* ---------------- 元信息 ---------------- */
+  function paintCover(cover, title, hue) {
+    var label = coverText(title);
+    if (cover) {
+      el.npCover.src = cover;
+      el.npCover.style.display = 'block';
+      el.discPh.style.display = 'none';
+      el.miniCover.src = cover;
+      el.miniCover.style.display = 'block';
+      el.miniPh.style.display = 'none';
+      el.disc.classList.remove('noph');
+      el.miniArt.classList.remove('noph');
+      el.npBg.style.backgroundImage = 'url("' + cover + '")';
+    } else {
+      el.npCover.style.display = 'none';
+      el.miniCover.style.display = 'none';
+      el.discPh.textContent = label;
+      el.discPh.style.display = 'grid';
+      el.miniPh.textContent = label;
+      el.miniPh.style.display = 'grid';
+      el.disc.classList.add('noph');
+      el.miniArt.classList.add('noph');
+      el.npBg.style.backgroundImage =
+        'linear-gradient(150deg,hsl(' + (hue == null ? 210 : hue) + ' 16% 24%),#0a0c10 70%)';
+    }
+  }
+
+  function updateMeta(t) {
+    if (!t) {
+      el.miniTitle.textContent = '未在播放';
+      el.miniArtist.textContent = '选一首歌开始吧';
+      el.npTitle.textContent = '未在播放';
+      el.npArtist.textContent = '选一首歌开始吧';
+      el.npSrc.textContent = '—';
+      paintCover('', '', 210);
+      el.npLike.classList.remove('on');
+      el.miniLike.classList.remove('on');
+      if (LY && LY.open) lyMsg('选一首歌开始吧');
+      return;
+    }
+    var liked = isLiked(t);
+    el.npLike.classList.toggle('on', liked);
+    el.miniLike.classList.toggle('on', liked);
+    var st = srcTextOf(t);
+    el.miniTitle.textContent = t.title;
+    el.miniArtist.textContent = (t.artist || '未知艺术家') + ' · ' + st;
+    el.npTitle.textContent = t.title;
+    el.npArtist.textContent = (t.artist || '未知艺术家') + ' · ' + st;
+
+    var src = st;
+    if (t.remote) {
+      if (t.bitrate) src += ' · ' + t.bitrate;
+      else if (!t.url) src = '正在解析音源…';
+    } else {
+      src = (t.ext || '本地') + ' · 本地文件';
+    }
+    el.npSrc.textContent = src;
+
+    paintCover(t.cover, t.title, t.hue);
+    el.npDur.textContent = fmt(t.dur);
+    // 切歌时歌词跟着换（歌词页开着才拉，省请求）
+    if (LY && LY.open && lyKeyOf(t) !== LY.key) lyLoad(t);
+  }
+
+  /* ---------------- 歌词 ----------------
+   * 音轨大多来自 B 站，视频没有歌词，所以是拿「歌名 + 歌手」去 QQ 音乐 / 网易云反查 LRC。
+   * 反查到的可能是别的版本 → 用歌词末行时间对比音轨时长判断是否对得上，
+   * 对不上就降级成只滚动不高亮，并开放 ±0.5s 手动校准（按歌记住）。
+   */
+  var LY_OFF_KEY = 'listen.lyric.off.v1';
+  var LY_OFF = (function () {
+    try { return JSON.parse(localStorage.getItem(LY_OFF_KEY) || '{}') || {}; } catch (e) { return {}; }
+  })();
+  var lyricMem = {};                       // 本次会话：key -> 接口结果
+  var LY = {
+    open: false, key: '', lines: [], idx: -1, off: 0,
+    lrcDur: 0, noHi: false, seq: 0, hintTxt: '', canCal: false, refit: false
+  };
+
+  function lySaveOff() {
+    try {
+      var keys = Object.keys(LY_OFF);
+      if (keys.length > 240) keys.slice(0, keys.length - 240).forEach(function (k) { delete LY_OFF[k]; });
+      localStorage.setItem(LY_OFF_KEY, JSON.stringify(LY_OFF));
+    } catch (e) {}
+  }
+
+  function lyKeyOf(t) {
+    if (!t) return '';
+    return String(t.title || '').replace(/\s+/g, '').toLowerCase() +
+      '|' + String(t.artist || '').split(/[/、,&]/)[0].replace(/\s+/g, '').toLowerCase();
+  }
+
+  function lyMsg(html) {
+    el.lyMsg.innerHTML = html;
+    el.lyMsg.hidden = false;
+    el.lyInner.innerHTML = '';
+    el.lyInner.style.transform = 'translateY(0)';
+  }
+
+  /** LRC → [{t: 秒, txt, tr}]（一行多个时间戳会拆成多行） */
+  function lyParse(lrc, tlrc) {
+    var off = 0;
+    var mo = /\[offset:\s*(-?\d+)\s*\]/i.exec(lrc);
+    if (mo) off = Number(mo[1]) / 1000;
+
+    function collect(text) {
+      var rows = [];
+      String(text || '').split(/\r?\n/).forEach(function (line) {
+        var re = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
+        var m, times = [];
+        while ((m = re.exec(line))) {
+          var fr = m[3] ? Number(('0.' + m[3]).slice(0, 5)) : 0;
+          times.push(Number(m[1]) * 60 + Number(m[2]) + fr);
+        }
+        if (!times.length) return;
+        var txt = line.replace(/\[[^\]]*\]/g, '').trim();
+        if (!txt) return;
+        times.forEach(function (t) { rows.push({ t: Math.round((t + off) * 100) / 100, txt: txt, tr: '' }); });
+      });
+      return rows;
+    }
+
+    var rows = collect(lrc).sort(function (a, b) { return a.t - b.t; });
+    var trans = collect(tlrc);
+    if (trans.length) {
+      var j = 0;
+      rows.forEach(function (r) {
+        while (j < trans.length && trans[j].t < r.t - 0.6) j++;
+        if (j < trans.length && Math.abs(trans[j].t - r.t) <= 0.6) r.tr = trans[j].txt;
+      });
+    }
+    return rows;
+  }
+
+  function lyCheckFit(t) {
+    // t.dur 是秒；音频还没就绪时退回 audio.duration
+    var dur = (t && t.dur ? t.dur : 0) || audio.duration || 0;
+    var diff = dur && LY.lrcDur ? Math.abs(dur - LY.lrcDur) : 0;
+    // 歌词是先于时长信息拉到的（dur 未知），现在知道了且差得离谱 → 带时长重查一次
+    if (diff > 25 && !LY.refit && !Math.abs(LY.off)) {
+      LY.refit = true;
+      lyLoad(t, true);
+      return;
+    }
+    LY.noHi = diff > 25;
+    LY.canCal = diff > 12 || Math.abs(LY.off) > 0.01;
+    var src = SRC_NAME[LY.src] || '';
+    if (diff > 25) {
+      LY.hintTxt = '歌词版本可能不同（差 ' + Math.round(diff) + 's），已关闭高亮 · 可 ± 校准';
+    } else if (diff > 12) {
+      LY.hintTxt = '时间轴差 ' + Math.round(diff) + 's，对不上可用右侧 ± 微调';
+    } else if (Math.abs(LY.off) > 0.01) {
+      LY.hintTxt = '已校准 ' + (LY.off > 0 ? '+' : '') + LY.off.toFixed(1) + 's · 点歌词可跳转';
+    } else {
+      LY.hintTxt = (src ? src + '歌词' : '歌词') + ' · 点一行可跳转';
+    }
+    el.lyHint.textContent = LY.hintTxt;
+    el.lyMinus.hidden = !LY.canCal;
+    el.lyPlus.hidden = !LY.canCal;
+  }
+
+  function lyApply(d, t) {
+    LY.lines = lyParse(d.lrc, d.tlrc);
+    LY.lrcDur = d.lrcDur || (LY.lines.length ? LY.lines[LY.lines.length - 1].t : 0);
+    LY.src = d.source || '';
+    if (!LY.lines.length) { lyMsg('这首歌没有可用歌词'); return; }
+    el.lyMsg.hidden = true;
+    el.lyInner.innerHTML = LY.lines.map(function (l, i) {
+      return '<div class="ly-row" data-i="' + i + '">' + esc(l.txt) +
+        (l.tr ? '<span class="tr">' + esc(l.tr) + '</span>' : '') + '</div>';
+    }).join('');
+    lyCheckFit(t);
+    LY.idx = -1;
+    lyTick(true);
+  }
+
+  /** 拉歌词：有 QQ mid / 网易云 id 就直取，否则按歌名反查 */
+  function lyLoad(t, force) {
+    if (!t) { lyMsg('选一首歌开始吧'); return; }
+    var key = lyKeyOf(t);
+    if (key !== LY.key) { LY.refit = false; LY.retried = false; }
+    LY.key = key;
+    LY.idx = -1;
+    LY.off = Number(LY_OFF[key]) || 0;
+    LY.lines = [];
+    LY.lrcDur = 0;
+    LY.loading = true;
+
+    if (!t.remote) { lyMsg('本地文件不带歌词'); return; }
+    if (lyricMem[key] && !force) { lyApply(lyricMem[key], t); return; }
+
+    var my = ++LY.seq;
+    lyMsg('<span class="spin"></span>正在找歌词…');
+    var q = '/api/lyric?title=' + encodeURIComponent(t.title || '') +
+      '&artist=' + encodeURIComponent(t.artist || '') + '&dur=' + Math.round(t.dur || 0);
+    if (t.qqMid) q += '&mid=' + encodeURIComponent(t.qqMid);
+    else if (t.songId && t.source === 'netease') q += '&id=' + encodeURIComponent(t.songId);
+
+    // 20s 超时：用竞速实现，兼容所有 WebView（AbortController 跨realm有坑）
+    var timer = null;
+    var kill = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('歌词请求超时')); }, 20000); });
+    kill.catch(function () {}); // 超时后竞速已结束，避免未处理拒绝
+
+    Promise.race([fetch(api(q)), kill])
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (timer) clearTimeout(timer);
+        LY.loading = false;
+        if (my !== LY.seq || LY.key !== key) return;
+        if (!d || !d.lrc) {
+          lyMsg('暂无歌词' + (d && d.error && d.error !== '没找到匹配的歌词' ? '：' + esc(d.error) : '') +
+            '<br><span style="opacity:.7;font-size:12px">B 站音轨常见这种情况，换个版本试试</span>');
+          return;
+        }
+        lyricMem[key] = d;
+        lyApply(d, t);
+      })
+      .catch(function () {
+        if (timer) clearTimeout(timer);
+        LY.loading = false;
+        if (my !== LY.seq || LY.key !== key) return;
+        lyMsg('歌词加载失败，<span class="ly-retry">点这里重试</span>');
+        // 网络抖动 / 服务刚重启时自动重试一次
+        if (!LY.retried) {
+          LY.retried = true;
+          setTimeout(function () {
+            if (my === LY.seq && LY.key === key && !LY.lines.length && LY.open) lyLoad(current() || t, true);
+          }, 2500);
+        }
+      });
+  }
+
+  /** 每帧按播放进度定位当前行 */
+  function lyTick(force) {
+    if (!LY.open || !LY.lines.length) return;
+    var now = (audio.currentTime || 0) - LY.off;
+    var lo = 0, hi = LY.lines.length - 1, idx = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (LY.lines[mid].t <= now) { idx = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    if (idx === LY.idx && !force) return;
+    LY.idx = idx;
+    lyPaint();
+  }
+
+  function lyPaint() {
+    var rows = el.lyInner.children;
+    if (!rows.length) return;
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle('on', i === LY.idx && !LY.noHi);
+      rows[i].classList.toggle('near', Math.abs(i - LY.idx) === 1);
+    }
+    var r = rows[LY.idx < 0 ? 0 : LY.idx];
+    if (!r) return;
+    var boxH = el.lyStage.clientHeight || el.ly.offsetHeight || 260;
+    var y = r.offsetTop + r.offsetHeight / 2 - boxH / 2;
+    el.lyInner.style.transform = 'translateY(' + (-y) + 'px)';
+  }
+
+  function lyToggle(on) {
+    var want = on == null ? !el.np.classList.contains('lyric-mode') : !!on;
+    el.np.classList.toggle('lyric-mode', want);
+    el.lyToggle.classList.toggle('on', want);
+    LY.open = want;
+    if (!want) return;
+    var t = current();
+    if (t && LY.key !== lyKeyOf(t)) { LY.retried = false; lyLoad(t); }
+    else if (t && LY.lines.length) { LY.idx = -1; lyPaint(); }
+    else if (t && !LY.loading && !lyricMem[LY.key]) lyLoad(t, true); // 上次失败过，重试
+    setTimeout(function () { if (LY.open) lyTick(true); }, 80);
+  }
+
+  function lyCal(delta) {
+    var key = LY.key || lyKeyOf(current());
+    if (!key) return;
+    LY.off = Math.round((LY.off + delta) * 10) / 10;
+    LY_OFF[key] = LY.off;
+    lySaveOff();
+    LY.noHi = false;
+    var t = current();
+    lyCheckFit(t);
+    LY.idx = -1;
+    lyTick(true);
+  }
+
+  (function bindLyric() {
+    el.lyToggle.addEventListener('click', function (e) { e.stopPropagation(); lyToggle(); });
+    el.disc.addEventListener('click', function () { lyToggle(true); });
+    el.lyMsg.addEventListener('click', function () {
+      if (el.lyMsg.hidden || /正在找/.test(el.lyMsg.textContent)) return;
+      var t = current();
+      if (t) lyLoad(t, true);
+    });
+    el.lyMinus.addEventListener('click', function (e) { e.stopPropagation(); lyCal(-0.5); });
+    el.lyPlus.addEventListener('click', function (e) { e.stopPropagation(); lyCal(0.5); });
+    el.lyInner.addEventListener('click', function (e) {
+      var row = e.target;
+      while (row && row !== el.lyInner && !row.classList.contains('ly-row')) row = row.parentNode;
+      if (!row || row === el.lyInner) return;
+      var i = Number(row.getAttribute('data-i'));
+      var l = LY.lines[i];
+      if (!l) return;
+      audio.currentTime = Math.max(0, l.t + LY.off);
+      LY.idx = -1;
+      lyTick(true);
+    });
+  })();
+
+  /* ---------------- 音源解析 ---------------- */
+  var URL_TTL = 20 * 60 * 1000;
+  var playSeq = 0;            // 每次点歌 +1，用来丢弃过期请求
+  var prefetching = {};
+
+  function playQuery(t, warm) {
+    var w = warm ? '&warm=1' : '';
+    if (t.bvid) return '/api/bili/audio?bvid=' + encodeURIComponent(t.bvid) + (t.page ? '&p=' + t.page : '') + w;
+    if (t.awemeId) return '/api/dy/audio?awemeId=' + encodeURIComponent(t.awemeId) + w;
+    return '/api/resolve?prefer=bili' + w +
+      '&title=' + encodeURIComponent(t.title) +
+      '&artist=' + encodeURIComponent(t.artist || '') +
+      '&dur=' + Math.round(t.dur || 0);
+  }
+
+  /** 解析音源并写回 track（不负责播放） */
+  function resolveTrack(t, warm) {
+    var fallbackQ = '/api/resolve?prefer=bili' + (warm ? '&warm=1' : '') +
+      '&title=' + encodeURIComponent(t.title) +
+      '&artist=' + encodeURIComponent(t.artist || '') +
+      '&dur=' + Math.round(t.dur || 0);
+    return apiReady.then(function (st) {
+      if (!st.ok) throw new Error('未连接音乐服务');
+      return fetch(api(playQuery(t, warm)));
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (f) {
+        // 抖音直取失败（没登录 / 会话失效 / 视频没了）：回退综合解析
+        if ((!f || !f.url) && t.awemeId) {
+          return fetch(api(fallbackQ)).then(function (r) { return r.json(); });
+        }
+        return f;
+      })
+      .then(function (f) {
+        if (!f || !f.url) return null;
+        var src = {
+          url: f.url.charAt(0) === '/' ? api(f.url) : f.url,
+          source: f.source || 'bilibili',
+          quality: f.quality || '',
+          author: f.author || '',
+          dur: f.dur || 0,
+          cover: f.cover || ''
+        };
+        var prevSrc = t.source;
+        t.url = src.url;
+        t.urlTs = Date.now();
+        t.source = src.source;
+        if (src.quality) t.bitrate = src.quality;
+        if (src.author) t.author = src.author;
+        if (!t.dur && src.dur) t.dur = src.dur;
+        if (!t.cover && src.cover) t.cover = src.cover;
+        if (t.id === S.cur) { updateMeta(t); renderQueue(); refreshRows(); }
+        // QQ 音乐只提供歌曲信息，音轨实际来自别处：明确告诉用户
+        if (prevSrc === 'qq' && src.source !== 'qq' && t.id === S.cur) {
+          toast('QQ 音乐无免费音轨 · 已自动切到 ' + (srcName(src.source) || '其他音源'));
+        }
+        return src;
+      });
+  }
+
+  function setBuffering(on, label) {
+    document.body.classList.toggle('buffering', !!on);
+    if (label) el.npSrc.textContent = label;
+  }
+  function clearBuffering() {
+    if (!document.body.classList.contains('buffering')) return;
+    document.body.classList.remove('buffering');
+    var t = current();
+    if (t) updateMeta(t);
+  }
+
+  function startPlayback(t, autoplay) {
+    t._retry = 0;
+    S.failStreak = 0;
+    audio.src = withShare(t.url);
+    if (autoplay !== false) {
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    }
+    prefetchNext();
+  }
+
+  function playTrack(id, autoplay) {
+    var t = null;
+    for (var i = 0; i < S.tracks.length; i++) if (S.tracks[i].id === id) t = S.tracks[i];
+    if (!t) return Promise.resolve();
+    var seq = ++playSeq;
+    S.cur = id;
+    updateMeta(t);
+    renderQueue();
+    refreshRows();
+
+    if (!t.remote) return startPlayback(t, autoplay);
+
+    // 已预取过（或 20 分钟内播过）：直接切歌，无网络等待
+    if (t.url && Date.now() - (t.urlTs || 0) < URL_TTL) return startPlayback(t, autoplay);
+
+    // 先停旧歌再解析，避免「点了新歌旧歌还在唱」的错觉
+    if (autoplay !== false) { try { audio.pause(); } catch (e) {} }
+    setBuffering(true, t.source === 'qq' ? 'QQ 音乐版权曲目 · 正在其他平台找音轨…' : '解析音源…');
+
+    var job = t._job || (t._job = resolveTrack(t, true));
+    return job
+      .then(function (src) {
+        t._job = null;
+        if (seq !== playSeq) return;           // 已经点别的歌了，丢弃
+        if (!src) {
+          t.source = '';
+          setBuffering(false, '无音源');
+          toast('《' + t.title + '》暂时没找到可用音源');
+          // 自动播放时遇到没音源的歌，跳过去继续放，别让音乐停在这儿
+          S.failStreak = (S.failStreak || 0) + 1;
+          if (S.tracks.length > 1 && S.failStreak <= 3) {
+            setTimeout(function () { if (current() === t) step(1); }, 1200);
+          }
+          return;
+        }
+        setBuffering(true, '缓冲中…');
+        return startPlayback(t, autoplay);
+      })
+      .catch(function (e) {
+        t._job = null;
+        if (seq !== playSeq) return;
+        setBuffering(false, '连接失败');
+        toast('解析失败：' + e.message);
+      });
+  }
+
+  /* ---------------- 预取：当前在播时就把下一首准备好 ---------------- */
+  function nextCandidate(dir) {
+    if (!S.tracks.length) return null;
+    if (S.mode === 2 && S.tracks.length > 1) return null;   // 随机模式没法预判
+    var i = indexOf(S.cur);
+    if (i < 0) return S.tracks[0] || null;
+    var n = i + (dir || 1);
+    if (n < 0) n = S.tracks.length - 1;
+    if (n >= S.tracks.length) n = 0;
+    return S.tracks[n];
+  }
+
+  function prefetchTrack(t, warm) {
+    if (!t || !t.remote) return;
+    if (t.url && Date.now() - (t.urlTs || 0) < URL_TTL) return;
+    if (prefetching[t.id]) return;
+    prefetching[t.id] = true;
+    resolveTrack(t, warm !== false)
+      .catch(function () {})
+      .then(function () { prefetching[t.id] = false; });
+  }
+
+  function prefetchNext() {
+    var n1 = nextCandidate(1);
+    if (n1 && n1.id !== S.cur) prefetchTrack(n1, true);
+    // 再往后一首只建连接不占带宽，等它变成「下一首」再补首段缓冲
+    setTimeout(function () {
+      var n2 = nextCandidate(2);
+      if (n2 && n2.id !== S.cur && (!n1 || n2.id !== n1.id)) prefetchTrack(n2, false);
+    }, 2500);
+  }
+
+  /** 列表里的歌提前解析（悬停 / 首屏前几首） */
+  function prefetchSong(s, warm) {
+    if (!s || s._pf) return;
+    s._pf = true;
+    var d = s.duration ? Math.round(s.duration / 1000) : (s.dur || 0);
+    var q;
+    if (s.bvid) {
+      q = '/api/bili/audio?bvid=' + encodeURIComponent(s.bvid) + (s.page ? '&p=' + s.page : '') + (warm ? '&warm=1' : '');
+    } else if (s.awemeId) {
+      q = '/api/dy/audio?awemeId=' + encodeURIComponent(s.awemeId) + (warm ? '&warm=1' : '');
+    } else {
+      q = '/api/resolve?prefer=bili' + (warm ? '&warm=1' : '') +
+        '&title=' + encodeURIComponent(s.title) +
+        '&artist=' + encodeURIComponent(s.artist || '') + '&dur=' + d;
+    }
+    apiReady.then(function (st) {
+      if (!st.ok) return;
+      return fetch(api(q));
+    }).catch(function () {});
+  }
+
+  function prefetchBatch(list, n) {
+    var i = 0;
+    (function tick() {
+      if (i >= Math.min(n, (list || []).length)) return;
+      prefetchSong(list[i++], true);
+      setTimeout(tick, 450);
+    })();
+  }
+
+  function toggle() {
+    if (!S.tracks.length) { el.file.click(); return; }
+    if (S.cur < 0) { playTrack(S.tracks[0].id, true); return; }
+    if (audio.paused) {
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    } else {
+      audio.pause();
+    }
+  }
+
+  function step(dir) {
+    if (!S.tracks.length) return;
+    var i = indexOf(S.cur);
+    if (i < 0) { playTrack(S.tracks[0].id, true); return; }
+    if (S.mode === 2 && S.tracks.length > 1) {
+      var n = i;
+      while (n === i) n = Math.floor(Math.random() * S.tracks.length);
+      playTrack(S.tracks[n].id, true);
+      return;
+    }
+    var next = i + dir;
+    if (next < 0) next = S.tracks.length - 1;
+    if (next >= S.tracks.length) next = 0;
+    playTrack(S.tracks[next].id, true);
+  }
+
+  /* ---------------- 音频事件 ---------------- */
+  audio.addEventListener('play', function () {
+    S.playing = true;
+    document.body.classList.add('playing');
+    if (NATIVE && NATIVE.setPlaying) {
+      var t = current();
+      try { NATIVE.setPlaying(true, (t && t.title) || '', (t && t.artist) || ''); } catch (e) {}
+    }
+  });
+  audio.addEventListener('pause', function () {
+    S.playing = false;
+    document.body.classList.remove('playing');
+    if (NATIVE && NATIVE.setPlaying) { try { NATIVE.setPlaying(false, '', ''); } catch (e) {} }
+  });
+  // 缓冲状态：等数据时播放键转圈，出声后自动恢复
+  audio.addEventListener('waiting', function () { if (!audio.paused) setBuffering(true, '缓冲中…'); });
+  audio.addEventListener('stalled', function () { if (!audio.paused) setBuffering(true, '缓冲中…'); });
+  audio.addEventListener('playing', clearBuffering);
+  audio.addEventListener('canplay', clearBuffering);
+  audio.addEventListener('loadeddata', clearBuffering);
+  // 音轨地址过期 / CDN 断流：丢缓存重解析一次
+  audio.addEventListener('error', function () {
+    var t = current();
+    if (!t || !t.remote || !t.url) return;
+    if (t._retry) {
+      setBuffering(false, '播放失败');
+      toast('这首先播不出来，换一首试试');
+      if (S.tracks.length > 1) setTimeout(function () { if (current() === t) step(1); }, 900);
+      return;
+    }
+    t._retry = 1;
+    t.url = null;
+    t.urlTs = 0;
+    t._job = null;
+    playTrack(t.id, true);
+  });
+  audio.addEventListener('seeked', function () { if (LY && LY.open) lyTick(true); });
+  audio.addEventListener('loadedmetadata', function () {
+    var t = current();
+    if (t && isFinite(audio.duration)) {
+      t.dur = audio.duration;
+      updateMeta(t);
+      renderQueue();
+    }
+  });
+  audio.addEventListener('timeupdate', function () {
+    var d = audio.duration || 0;
+    var r = d ? audio.currentTime / d : 0;
+    if (!S.seeking) paintSeek(r);
+    el.npCur.textContent = fmt(audio.currentTime);
+    el.npDur.textContent = fmt(d);
+    el.miniProg.style.width = (r * 100) + '%';
+    if (LY && LY.open) lyTick();
+
+    var t = current();
+    if (t && !t._counted && t.remote && audio.currentTime > 15) {
+      t._counted = true;
+      P.plays.push({ title: t.title, artist: t.artist || '', ts: Date.now() });
+      saveProfile();
+      el.stPlay.textContent = P.plays.length;
+    }
+
+    // 兜底：音轨结尾偶尔不触发 ended（数据提前 EOF / 卡在末尾），手动推进到下一首
+    if (t && !S.seeking && !audio.paused && !audio.ended && d && d - audio.currentTime < 0.35 && !t._endWait) {
+      t._endWait = true;
+      setTimeout(function () {
+        t._endWait = false;
+        if (t !== current()) return;
+        if (!audio.paused && !audio.ended && audio.duration - audio.currentTime < 0.6) onTrackEnd();
+      }, 1500);
+    }
+  });
+
+  /* 一首放完 → 按播放模式走下一首（ended 与上面的兜底共用，防重复触发） */
+  var lastAdvance = 0;
+  function onTrackEnd() {
+    var now = Date.now();
+    if (now - lastAdvance < 800) return;
+    lastAdvance = now;
+    var t = current();
+    if (t) t._endWait = false;
+    if (S.mode === 1) {
+      audio.currentTime = 0;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+      return;
+    }
+    step(1);
+  }
+  audio.addEventListener('ended', onTrackEnd);
+
+  function paintSeek(ratio) {
+    ratio = Math.max(0, Math.min(1, ratio || 0));
+    el.seekFill.style.width = (ratio * 100) + '%';
+    el.seekKnob.style.left = (ratio * 100) + '%';
+  }
+
+  /* ---------------- 进度拖动 ---------------- */
+  function ratioFromEvent(e) {
+    var r = el.seek.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  }
+  el.seek.addEventListener('pointerdown', function (e) {
+    if (!current()) return;
+    S.seeking = true;
+    el.seek.classList.add('dragging');
+    try { el.seek.setPointerCapture(e.pointerId); } catch (err) {}
+    S.dragRatio = ratioFromEvent(e);
+    paintSeek(S.dragRatio);
+    el.npCur.textContent = fmt(S.dragRatio * (audio.duration || 0));
+  });
+  el.seek.addEventListener('pointermove', function (e) {
+    if (!S.seeking) return;
+    S.dragRatio = ratioFromEvent(e);
+    paintSeek(S.dragRatio);
+    el.npCur.textContent = fmt(S.dragRatio * (audio.duration || 0));
+  });
+  function endSeek() {
+    if (!S.seeking) return;
+    S.seeking = false;
+    el.seek.classList.remove('dragging');
+    var d = audio.duration || 0;
+    if (d) audio.currentTime = S.dragRatio * d;
+  }
+  el.seek.addEventListener('pointerup', endSeek);
+  el.seek.addEventListener('pointercancel', function () {
+    S.seeking = false;
+    el.seek.classList.remove('dragging');
+  });
+
+  /* ---------------- 控制按钮 ---------------- */
+  el.npPlay.addEventListener('click', toggle);
+  el.miniPlay.addEventListener('click', toggle);
+  el.miniNext.addEventListener('click', function () { step(1); });
+  el.npNext.addEventListener('click', function () { step(1); });
+  el.npPrev.addEventListener('click', function () {
+    if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+    step(-1);
+  });
+  el.modeBtn.addEventListener('click', function () {
+    S.mode = (S.mode + 1) % 3;
+    el.modeBtn.innerHTML = ICON.mode[S.mode];
+    toast(S.mode === 0 ? '列表循环' : (S.mode === 1 ? '单曲循环' : '随机播放'));
+  });
+  el.modeBtn.innerHTML = ICON.mode[0];
+
+  /* 喜欢开关：播放页心形 / 迷你条心形 / 搜索结果行共用 */
+  function toggleLikeSong(s) {
+    if (!s) return false;
+    if (isLiked(s)) {
+      P.liked = P.liked.filter(function (x) {
+        return !(keyOf(x.title) === keyOf(s.title) && keyOf(x.artist) === keyOf(s.artist));
+      });
+      toast('已取消喜欢');
+      saveProfile();
+      renderStats();
+      return false;
+    }
+    P.liked.push({
+      title: s.title, artist: s.artist || '',
+      cover: s.cover || '', dur: (s.duration ? s.duration / 1000 : (s.dur || 0)),
+      source: s.source || (s.bvid ? 'bilibili' : ''),
+      bvid: s.bvid || '', awemeId: s.awemeId || '', ts: Date.now()
+    });
+    toast('已喜欢 · 之后多推类似的');
+    saveProfile();
+    renderStats();
+    return true;
+  }
+
+  el.npLike.addEventListener('click', function () {
+    var t = current();
+    if (!t) return;
+    toggleLikeSong(t);
+    updateMeta(t);          // 同步播放页 + 迷你条两处心形
+  });
+
+  el.miniLike.addEventListener('click', function () {
+    var t = current();
+    if (!t) { toast('先放一首歌再点喜欢'); return; }
+    toggleLikeSong(t);
+    updateMeta(t);
+  });
+
+  el.miniLike.innerHTML = ICON.heart;
+
+  el.vol.addEventListener('input', function () {
+    audio.volume = Number(el.vol.value);
+  });
+
+  /* ---------------- 本地文件 ---------------- */
+  function addFiles(fileList) {
+    var files = [];
+    for (var i = 0; i < fileList.length; i++) {
+      var f = fileList[i];
+      if (!f) continue;
+      if ((f.type && f.type.indexOf('audio') === 0) || AUDIO_RE.test(f.name)) files.push(f);
+    }
+    if (!files.length) return;
+
+    var firstId = null;
+    for (var k = 0; k < files.length; k++) {
+      (function (f) {
+        var url = URL.createObjectURL(f);
+        var base = f.name.replace(/\.[^.]+$/, '');
+        var artist = '', title = base.trim();
+        var parts = base.split(/\s+[-–—]\s+/);
+        if (parts.length >= 2 && parts[0].length <= 32) {
+          artist = parts[0].trim();
+          title = parts.slice(1).join(' - ').trim();
+        }
+        var t = {
+          id: ++uid,
+          title: title || base,
+          artist: artist,
+          cover: '',
+          url: url,
+          ext: (f.name.split('.').pop() || '').toUpperCase(),
+          dur: 0,
+          hue: hueOf(base),
+          remote: false
+        };
+        S.tracks.push(t);
+        if (!firstId) firstId = t.id;
+
+        var probe = new Audio();
+        probe.preload = 'metadata';
+        probe.src = url;
+        probe.addEventListener('loadedmetadata', function () {
+          t.dur = isFinite(probe.duration) ? probe.duration : 0;
+          probe.src = '';
+          var c = current();
+          if (c && c.id === t.id) updateMeta(c);
+          renderQueue();
+        });
+        probe.addEventListener('error', function () { probe.src = ''; });
+      })(files[k]);
+    }
+
+    var wasEmpty = S.cur < 0;
+    renderQueue();
+    if (wasEmpty && firstId) playTrack(firstId, true);
+    else toast('已加入 ' + files.length + ' 首本地音乐');
+  }
+
+  el.add.addEventListener('click', function () { el.file.click(); });
+  el.add2.addEventListener('click', function () { el.file.click(); });
+  el.file.addEventListener('change', function () {
+    addFiles(el.file.files);
+    el.file.value = '';
+  });
+
+  // 拖拽
+  var dragDepth = 0;
+  window.addEventListener('dragenter', function (e) { e.preventDefault(); dragDepth++; });
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('dragleave', function (e) {
+    e.preventDefault();
+    dragDepth = Math.max(0, dragDepth - 1);
+  });
+  window.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dragDepth = 0;
+    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+
+  /* ---------------- 队列操作 ---------------- */
+  el.queue.addEventListener('click', function (e) {
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      e.stopPropagation();
+      var id = Number(del.getAttribute('data-del'));
+      var i = indexOf(id);
+      if (i < 0) return;
+      var wasCur = id === S.cur;
+      var victim = S.tracks[i];
+      if (!victim.remote && victim.url) {
+        try { URL.revokeObjectURL(victim.url); } catch (err) {}
+      }
+      S.tracks.splice(i, 1);
+      if (wasCur) {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        S.cur = -1;
+        updateMeta(null);
+        paintSeek(0);
+        el.miniProg.style.width = '0%';
+        if (S.tracks.length) {
+          var idx = Math.min(i, S.tracks.length - 1);
+          playTrack(S.tracks[idx].id, true);
+        }
+      }
+      renderQueue();
+      refreshRows();
+      return;
+    }
+    var row = e.target.closest('.row');
+    if (row) {
+      var tid = Number(row.getAttribute('data-id'));
+      if (tid === S.cur) { toggle(); return; }
+      playTrack(tid, true);
+    }
+  });
+
+  el.qClear.addEventListener('click', function () {
+    if (!S.tracks.length) { toast('列表已经是空的'); return; }
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    S.tracks.forEach(function (t) {
+      if (!t.remote && t.url) { try { URL.revokeObjectURL(t.url); } catch (e) {} }
+    });
+    S.tracks = [];
+    S.cur = -1;
+    updateMeta(null);
+    paintSeek(0);
+    el.miniProg.style.width = '0%';
+    renderQueue();
+    refreshRows();
+    toast('已清空播放列表');
+  });
+
+  /* ---------------- 提示 ---------------- */
+  var toastTimer = null;
+  function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.toast.classList.remove('on'); }, 2600);
+  }
+
+  /* ---------------- 使用与版权声明 ---------------- */
+  var NOTICE_KEY = 'listen.notice.v1';
+
+  function noticeAgreed() {
+    try { return localStorage.getItem(NOTICE_KEY) === '1'; } catch (e) { return false; }
+  }
+  function openNotice() {
+    el.noticeMask.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+  }
+  function closeNotice() {
+    el.noticeMask.hidden = true;
+    document.documentElement.style.overflow = '';
+  }
+  function bootNotice() {
+    el.openNotice.addEventListener('click', openNotice);
+    el.openNotice2.addEventListener('click', openNotice);
+    el.noticeOk.addEventListener('click', function () {
+      try { localStorage.setItem(NOTICE_KEY, '1'); } catch (e) {}
+      closeNotice();
+    });
+    // 首次打开必须点按钮；已确认过的，点遮罩即可关闭
+    el.noticeMask.addEventListener('click', function (e) {
+      if (e.target === el.noticeMask && noticeAgreed()) closeNotice();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !el.noticeMask.hidden && noticeAgreed()) closeNotice();
+    });
+    if (!noticeAgreed()) openNotice();
+  }
+
+  /* ---------------- 账号（登录 / 注册 / 退出） ---------------- */
+  function authPaint() {
+    if (AUTH.token) {
+      el.accName.textContent = (AUTH.nickname || '用户') + '（' + AUTH.account + '）';
+      el.accDesc.innerHTML = '<i class="acc-dot"></i>已登录 · 喜欢与列表云端同步';
+      el.accBtn.textContent = '退出登录';
+      el.accTip.textContent = '数据存在账号「' + AUTH.account + '」名下；在其他设备上用这个账号 + 密码登录即可全部找回。';
+      // 顶部：有昵称显示昵称，没昵称就不显示这一行
+      if (AUTH.nickname) {
+        el.pfName.hidden = false;
+        el.pfName.textContent = AUTH.nickname;
+      } else {
+        el.pfName.hidden = true;
+      }
+      document.querySelector('.profile p').textContent = '账号 ' + AUTH.account;
+    } else {
+      el.accName.textContent = '未登录';
+      el.accDesc.innerHTML = '<i class="acc-dot off"></i>数据只存在这台设备上';
+      el.accBtn.textContent = '登录 / 注册';
+      el.accTip.textContent = '用你自己的 QQ 号（或任意 5~11 位数字）当账号 + 密码注册。换手机、换电脑，用账号 + 密码登录就能找回你的喜欢、历史和播放列表。';
+      el.pfName.hidden = true;
+      document.querySelector('.profile p').textContent = '数据只存在这台设备上';
+    }
+  }
+
+  function authOpen() {
+    el.authMask.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    authTab('login');
+  }
+  function authClose() {
+    el.authMask.hidden = true;
+    document.documentElement.style.overflow = '';
+  }
+
+  function authTab(which) {
+    var isLogin = which === 'login';
+    el.authTabLogin.classList.toggle('on', isLogin);
+    el.authTabReg.classList.toggle('on', !isLogin);
+    el.authLoginForm.hidden = !isLogin;
+    el.authRegForm.hidden = isLogin;
+    el.authGo.textContent = isLogin ? '登录' : '注册';
+    el.authSub.textContent = isLogin
+      ? '用数字账号 + 密码登录，数据全平台同步'
+      : '用你记住的数字当账号（推荐 QQ 号）+ 密码注册';
+  }
+
+  function authSay(which, msg, cls) {
+    var box = which === 'login' ? el.authLoginState : el.authRegState;
+    box.textContent = msg || '';
+    box.className = 'dy-state' + (cls ? ' ' + cls : '');
+  }
+
+  function authAfterLogin(j, isNew) {
+    AUTH = { account: j.account, token: j.token, nickname: j.nickname || '' };
+    saveAuth();
+    SYNC.ready = true;
+    authPaint();
+    authClose();
+    if (isNew) {
+      toast('注册成功！你的账号是 ' + j.account + '，请记牢账号和密码');
+    } else {
+      toast('欢迎回来，' + (j.nickname || j.account));
+    }
+    dyRefresh();   // 抖音登录态跟着账号走：登录后立刻确认绑定关系
+    // 拉云端数据合并，再把本地新增的推上去
+    syncDownload().then(function () {
+      renderQueue();
+      renderStats();
+      renderLikes();
+      syncUpload();
+    });
+  }
+
+  function authSubmit() {
+    var isLogin = el.authRegForm.hidden;   // 注册表单隐藏 = 当前在登录页
+    if (isLogin) {
+      var acc = (el.authAccount.value || '').trim();
+      var pw = el.authPass.value || '';
+      if (!/^\d{5,11}$/.test(acc)) { authSay('login', '账号是 5~11 位数字', 'err'); return; }
+      if (!pw) { authSay('login', '先输入密码', 'err'); return; }
+      authSay('login', '正在登录…');
+      fetch(api('/api/auth/login'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account: acc, password: pw })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { authSay('login', j.error || '登录失败', 'err'); return; }
+          authAfterLogin(j, false);
+        })
+        .catch(function () { authSay('login', '连不上服务，稍后再试', 'err'); });
+    } else {
+      var acc2 = (el.authRegAccount.value || '').trim();
+      var nick = (el.authNick.value || '').trim();
+      var pw2 = el.authPass2.value || '';
+      if (!/^\d{5,11}$/.test(acc2)) { authSay('reg', '账号必须是 5~11 位数字（比如你的 QQ 号）', 'err'); return; }
+      if (pw2.length < 6) { authSay('reg', '密码至少 6 位', 'err'); return; }
+      authSay('reg', '正在注册…');
+      fetch(api('/api/auth/register'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account: acc2, nickname: nick, password: pw2 })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { authSay('reg', j.error || '注册失败', 'err'); return; }
+          authAfterLogin(j, true);
+        })
+        .catch(function () { authSay('reg', '连不上服务，稍后再试', 'err'); });
+    }
+  }
+
+  function authLogout() {
+    var token = AUTH.token;
+    AUTH = { account: '', token: '', nickname: '' };
+    saveAuth();
+    SYNC.ready = false;   // 退出后停同步，本机数据原样保留
+    authPaint();
+    dyRefresh();          // 退出账号后，抖音不再对这个身份可见
+    toast('已退出登录，数据保留在本机');
+    fetch(api('/api/auth/logout'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token })
+    }).catch(function () {});
+  }
+
+  function bootAuth() {
+    el.accBtn.addEventListener('click', function () {
+      if (AUTH.token) authLogout();
+      else authOpen();
+    });
+    el.authTabLogin.addEventListener('click', function () { authTab('login'); });
+    el.authTabReg.addEventListener('click', function () { authTab('reg'); });
+    el.authGo.addEventListener('click', authSubmit);
+    el.authClose.addEventListener('click', authClose);
+    el.authMask.addEventListener('click', function (e) { if (e.target === el.authMask) authClose(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !el.authMask.hidden) authClose();
+    });
+    el.authPass.addEventListener('keydown', function (e) { if (e.key === 'Enter') authSubmit(); });
+    el.authAccount.addEventListener('keydown', function (e) { if (e.key === 'Enter') el.authPass.focus(); });
+    el.authRegAccount.addEventListener('keydown', function (e) { if (e.key === 'Enter') el.authNick.focus(); });
+    el.authPass2.addEventListener('keydown', function (e) { if (e.key === 'Enter') authSubmit(); });
+
+    // 密码小眼睛：点一下显示明文，再点隐藏
+    function bindPwEye(btn, input) {
+      btn.addEventListener('click', function () {
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.classList.toggle('on', show);
+      });
+    }
+    bindPwEye($('#pwEyeLogin'), el.authPass);
+    bindPwEye($('#pwEyeReg'), el.authPass2);
+
+    authPaint();
+    // 校验本地保存的登录态是否还有效（服务端可能清过会话）
+    if (AUTH.token) {
+      SYNC.ready = true;
+      apiReady.then(function (st) {
+        if (!st.ok) return;
+        return fetch(api('/api/auth/me?token=' + encodeURIComponent(AUTH.token))).then(function (r) { return r.json(); });
+      }).then(function (j) {
+        if (j && j.ok) {
+          AUTH.nickname = j.nickname || AUTH.nickname;
+          saveAuth();
+          authPaint();
+          syncDownload().then(function () { renderLikes(); renderStats(); });
+        } else {
+          AUTH = { account: '', token: '', nickname: '' };
+          saveAuth();
+          SYNC.ready = false;
+          authPaint();
+        }
+      }).catch(function () {});
+    }
+  }
+
+  /* ---------------- 抖音登录 ---------------- */
+  var DY = { logged: false, nickname: '', claimable: false, polling: null };
+
+  function dyPaint() {
+    var bound = AUTH && AUTH.token;
+    var who = bound ? ('账号「' + (AUTH.nickname || AUTH.account) + '」') : '本机设备';
+    if (el.dyBindWho) el.dyBindWho.textContent = who;
+    if (el.dyNoteWho) el.dyNoteWho.textContent = who;
+    if (el.dyClaim) el.dyClaim.hidden = !(DY.claimable && bound && !DY.logged);
+    if (DY.logged) {
+      el.dyLogo.classList.add('on');
+      el.dyName.textContent = DY.nickname || '抖音';
+      el.dyDesc.innerHTML = '<i class="acc-dot"></i>已登录 · 仅' + (bound ? '当前账号' : '本机') + '可用';
+      el.dyBtn.textContent = '退出';
+      el.dyTip.textContent = bound
+        ? '已绑定到你的耳边账号「' + (AUTH.nickname || AUTH.account) + '」。别人打开这个网址看不到、也用不了你的抖音，换设备登录同一账号才生效。'
+        : '已绑定在本机设备上；登录 / 注册耳边账号后会自动转为账号绑定，换设备也能用。';
+    } else {
+      el.dyLogo.classList.remove('on');
+      el.dyName.textContent = '抖音';
+      el.dyDesc.innerHTML = '<i class="acc-dot off"></i>未登录 · 仅绑定者可用';
+      el.dyBtn.textContent = '登录';
+      el.dyTip.textContent = '抖音登录态跟着你的耳边账号走：谁打开这个网址都看不到、也用不了你的抖音。' +
+        (bound ? '登录后只在本账号下生效。' : '建议先登录 / 注册耳边账号，再登录抖音。');
+    }
+  }
+
+  function dyRefresh() {
+    return fetch(api('/api/dy/status'))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        DY.logged = !!j.logged;
+        DY.nickname = j.nickname || '';
+        DY.claimable = !!j.claimable;
+        dyPaint();
+        return j;
+      })
+      .catch(function () {});
+  }
+
+  function dyStopPoll() {
+    if (DY.polling) { clearInterval(DY.polling); DY.polling = null; }
+  }
+  function dyOpen() {
+    el.dyMask.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    dyRefresh();
+  }
+  function dyClose() {
+    el.dyMask.hidden = true;
+    document.documentElement.style.overflow = '';
+    dyStopPoll();
+  }
+  function dySay(which, msg, cls) {
+    var box = which === 'scan' ? el.dyScanState : el.dyCookieState;
+    box.textContent = msg || '';
+    box.className = 'dy-state' + (cls ? ' ' + cls : '');
+  }
+  function dyAfterLogin(j) {
+    DY.logged = true;
+    DY.nickname = (j && j.nickname) || '';
+    dyPaint();
+    if (j && j.lastError) {
+      toast('已登录抖音，但接口被拒（' + j.lastError + '），暂时继续用 B 站音源');
+    } else {
+      toast('抖音登录成功，音源已就绪');
+      setTimeout(dyClose, 700);
+    }
+  }
+
+  // APP（本地版）里没有桌面 Chrome，改成应用内登录，登录完把 Cookie 交给本地服务
+  window.__onDyLogin = function (ok, msg) {
+    if (ok) {
+      dySay('scan', '登录成功，正在读取抖音账号…');
+      setTimeout(function () { dyRefresh(); }, 700);
+    } else {
+      dySay('scan', msg || '登录没有完成', 'err');
+    }
+  };
+
+  function dyStartScan() {
+    if (NATIVE && typeof NATIVE.loginDouyin === 'function') {
+      dySay('scan', '请在弹出的窗口里登录抖音，完成后点「我已登录完成」');
+      try { NATIVE.loginDouyin(); } catch (e) { dySay('scan', '打不开登录窗口', 'err'); }
+      return;
+    }
+    dySay('scan', '正在打开抖音窗口…');
+    fetch(api('/api/dy/login/browser'), { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) {
+          dySay('scan', j.error || '打不开浏览器，请用下面的方式二', 'err');
+          return;
+        }
+        dySay('scan', '窗口已打开，请在抖音里扫码登录，登录后这里会自动完成…');
+        dyStopPoll();
+        var n = 0;
+        DY.polling = setInterval(function () {
+          n++;
+          if (n > 100) {
+            dyStopPoll();
+            dySay('scan', '等待超时了。窗口若还开着可以再点一次，或改用方式二', 'err');
+            return;
+          }
+          fetch(api('/api/dy/login/poll'))
+            .then(function (r) { return r.json(); })
+            .then(function (p) {
+              if (p.ok) {
+                dyStopPoll();
+                dySay('scan', '已读取到登录状态 ✓', 'ok');
+                dyAfterLogin(p);
+              } else if (p.reason) {
+                dySay('scan', p.reason);
+              }
+            })
+            .catch(function () {});
+        }, 2500);
+      })
+      .catch(function () { dySay('scan', '连不上本机服务，确认服务在运行再试', 'err'); });
+  }
+
+  function dyCookieSubmit() {
+    var v = (el.dyCookie.value || '').trim();
+    if (!v) { dySay('cookie', '先粘贴 Cookie 再提交', 'err'); return; }
+    dySay('cookie', '正在校验…');
+    fetch(api('/api/dy/login/cookie'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie: v })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { dySay('cookie', j.error || '校验没通过', 'err'); return; }
+        dySay('cookie', '导入成功 ✓', 'ok');
+        el.dyCookie.value = '';
+        dyAfterLogin(j);
+      })
+      .catch(function () { dySay('cookie', '导入失败，再试一次', 'err'); });
+  }
+
+  function dyProbe() {
+    dySay('scan', '正在检测抖音接口…');
+    fetch(api('/api/dy/probe'))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.logged) { dySay('scan', '还没登录，先扫码或导入 Cookie', 'err'); return; }
+        if (j.search && j.search.ok && j.search.count) {
+          var a = j.audio || {};
+          if (a.ok) {
+            dySay('scan', '可用 ✓ 搜到 ' + j.search.count + ' 条，音轨类型 ' + (a.kind === 'music' ? '抖音原声' : '视频音轨'), 'ok');
+          } else {
+            dySay('scan', '搜索可用，但取音轨失败：' + (a.error || '未知'), 'err');
+          }
+        } else if (j.search && j.search.error === 'NEED_LOGIN') {
+          dySay('scan', '接口仍要求登录，Cookie 可能已失效，重新登录一次', 'err');
+        } else {
+          var why = (j.search && j.search.error) || '未知';
+          dySay('scan', '被抖音拦下了：' + why + '（抖音需要额外签名参数，暂时用 B 站音源）', 'err');
+        }
+      })
+      .catch(function () { dySay('scan', '检测失败，服务可能没在运行', 'err'); });
+  }
+
+  function bootDy() {
+    el.dyBtn.addEventListener('click', function () {
+      if (!DY.logged) return dyOpen();
+      fetch(api('/api/dy/logout'), { method: 'POST' }).then(function () {
+        DY.logged = false;
+        DY.nickname = '';
+        dyPaint();
+        toast('已退出抖音，音源切回 B 站');
+      });
+    });
+    el.dyScan.addEventListener('click', dyStartScan);
+    el.dyCookieSave.addEventListener('click', dyCookieSubmit);
+    el.dyProbe.addEventListener('click', dyProbe);
+    el.dyClose.addEventListener('click', dyClose);
+    el.dyClaim.addEventListener('click', function () {
+      if (!AUTH.token) { toast('先登录你的耳边账号，再绑定抖音'); return; }
+      el.dyClaim.disabled = true;
+      fetch(api('/api/dy/claim'), { method: 'POST' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.ok) {
+            DY.claimable = false;
+            toast('已绑定到你的账号' + (j.nickname ? '：' + j.nickname : ''));
+            dyRefresh();
+          } else {
+            toast((j && j.error) || '没有可认领的登录态，请重新扫码登录');
+            el.dyClaim.disabled = false;
+          }
+        })
+        .catch(function () { el.dyClaim.disabled = false; toast('连不上服务，稍后再试'); });
+    });
+    el.dyMask.addEventListener('click', function (e) { if (e.target === el.dyMask) dyClose(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !el.dyMask.hidden) dyClose();
+    });
+    dyRefresh();
+  }
+
+  /* ---------------- 入列 ---------------- */
+  function findQueued(item) {
+    if (!item) return null;
+    var want = keyOf(item.title);
+    for (var i = 0; i < S.tracks.length; i++) {
+      var x = S.tracks[i];
+      if (!x.remote) continue;
+      if (item.songId && x.songId === item.songId) return x;
+      if (item.bvid && x.bvid === item.bvid && (item.page || 1) === (x.page || 1)) return x;
+      if (item.awemeId && x.awemeId === item.awemeId) return x;
+      if (item.qqMid && x.qqMid === item.qqMid) return x;
+      if (want && keyOf(x.title) === want && keyOf(x.artist) === keyOf(item.artist)) return x;
+    }
+    return null;
+  }
+
+  function queueSong(song, silent) {
+    var exist = findQueued(song);
+    if (exist) return exist;
+    var t = {
+      id: ++uid,
+      title: song.title,
+      artist: song.artist || '',
+      album: song.album || '',
+      cover: song.cover || '',
+      ext: '在线',
+      source: song.source || (song.bvid ? 'bilibili' : (song.qqMid ? 'qq' : (song.songId ? 'netease' : ''))),
+      dur: (song.duration || 0) / 1000,
+      hue: hueOf(String(song.title || 'x')),
+      remote: true,
+      songId: song.songId || null,
+      bvid: song.bvid || null,
+      page: song.page || null,
+      cid: song.cid || null,
+      awemeId: song.awemeId || null,
+      qqMid: song.qqMid || null,
+      url: null,
+      urlTs: 0,
+      bitrate: ''
+    };
+    S.tracks.push(t);
+    if (!silent) renderQueue();
+    return t;
+  }
+
+  function queueMeta(item, silent) {
+    var exist = findQueued(item);
+    if (exist) return exist;
+    var t = {
+      id: ++uid,
+      title: item.title,
+      artist: item.artist || '',
+      album: '',
+      cover: item.cover || '',
+      ext: '在线',
+      source: item.source || (item.bvid ? 'bilibili' : (item.qqMid ? 'qq' : '')),
+      dur: item.dur || 0,
+      hue: hueOf(String(item.title || 'x')),
+      remote: true,
+      songId: null,
+      bvid: item.bvid || null,
+      page: item.page || null,
+      cid: item.cid || null,
+      awemeId: item.awemeId || null,
+      qqMid: item.qqMid || null,
+      url: null,
+      urlTs: 0,
+      bitrate: ''
+    };
+    S.tracks.push(t);
+    if (!silent) renderQueue();
+    return t;
+  }
+
+  /**
+   * QQ 音乐逻辑：点某一行 = 整批进队列 + 从这首开始播。
+   * 这样一首放完才会顺着列表往下走（否则队列里只有一首，会一直循环它自己）。
+   */
+  function playFromList(list, idx, kind) {
+    list = list || [];
+    var picked = null;
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!s) continue;
+      var t = findQueued(s) || (kind === 'ne' ? queueSong(s, true) : queueMeta(s, true));
+      if (i === idx) picked = t;
+    }
+    renderQueue();
+    renderStats();
+    refreshRows();
+    if (picked) playTrack(picked.id, true);
+    return picked;
+  }
+
+  /**
+   * 单曲插播：搜索结果点行 = 只播这一首。
+   * 插到「正在播放」的后面 —— 这首放完，自动接着原列表往下走，不会把整批搜索结果灌进队列。
+   * 没在播时等同于直接开播。
+   */
+  function playSingle(item, kind) {
+    if (!item) return null;
+    var t = findQueued(item) || (kind === 'ne' ? queueSong(item, true) : queueMeta(item, true));
+    if (!t) return null;
+    renderQueue();
+    renderStats();
+    if (S.cur === -1) {
+      playTrack(t.id, true);
+      refreshRows();
+      toast('开始播放');
+      return t;
+    }
+    if (t.id !== S.cur) {
+      var i = indexOf(t.id);
+      if (i > -1) S.tracks.splice(i, 1);        // 已在列表里：挪出来
+      var cur = indexOf(S.cur);
+      S.tracks.splice(cur + 1, 0, t);           // 插到当前这首歌后面
+    }
+    playTrack(t.id, true);
+    refreshRows();
+    toast('插播《' + t.title + '》· 放完继续原列表');
+    return t;
+  }
+
+  function commitAdd(track) {
+    if (!track) return;
+    renderStats();
+    if (S.cur === -1) {
+      playTrack(track.id, true);
+      toast('已加入列表，开始播放');
+      return;
+    }
+    var pos = indexOf(track.id) + 1;
+    toast('已加入列表 · 第 ' + pos + ' 首 / 共 ' + S.tracks.length + ' 首');
+  }
+
+  /**
+   * 下一首播放：把歌插到「正在播放」的后面。
+   * 已在列表里的歌会被挪到当前歌曲之后；没在播时等同于直接播。
+   */
+  function playNextOf(item) {
+    var t = findQueued(item) || queueSong(item, true);
+    if (!t) return null;
+    if (S.cur === -1) {
+      playTrack(t.id, true);
+      toast('已加入列表，开始播放');
+      renderQueue();
+      refreshRows();
+      return t;
+    }
+    if (t.id === S.cur) { toast('这首正在播放'); return t; }
+    var i = indexOf(t.id);
+    if (i > -1) S.tracks.splice(i, 1);          // 已在列表：先挪出来
+    var cur = indexOf(S.cur);
+    S.tracks.splice(cur + 1, 0, t);
+    renderQueue();
+    refreshRows();
+    toast('已设为下一首播放');
+    return t;
+  }
+
+  function bulkAdd(list, kind) {
+    var n = 0, dup = 0, first = null;
+    for (var i = 0; i < (list || []).length; i++) {
+      var s = list[i];
+      if (!s) continue;
+      if (findQueued(s)) { dup++; continue; }
+      var t = kind === 'ne' ? queueSong(s) : queueMeta(s);
+      if (t) { n++; if (!first) first = t; }
+    }
+    refreshRows();
+    renderStats();
+    if (!n) { toast('这些歌都已经在列表里了'); return 0; }
+    if (S.cur === -1 && first) playTrack(first.id, true);
+    toast('已加入 ' + n + ' 首' + (dup ? '（' + dup + ' 首已存在）' : ''));
+    return n;
+  }
+
+  /* ---------------- 歌单：我的歌单 + QQ 音乐热门歌单 ---------------- */
+  var PL = { kind: null, id: null, data: null, songs: [] };   // 详情弹层当前内容
+  var HOTPL = { list: [], page: 0, loading: false, ts: 0, total: 0 };
+  var PICK = { song: null, songs: null };
+  var ACT = { song: null, ctx: {} };
+
+  function myPlaylists() {
+    if (!Array.isArray(P.playlists)) P.playlists = [];
+    return P.playlists;
+  }
+  function plNewId() {
+    return 'pl' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  function plById(id) {
+    var l = myPlaylists();
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+    return null;
+  }
+  /** 统一成「秒」为单位的快照，播放时直接 queueMeta */
+  function plNormSong(s) {
+    s = s || {};
+    var dur = Number(s.dur);
+    if (!dur && s.duration) dur = Number(s.duration) / 1000;
+    if (!isFinite(dur) || dur < 0) dur = 0;
+    return {
+      title: s.title || '',
+      artist: s.artist || '',
+      cover: s.cover || '',
+      dur: Math.round(dur),
+      source: s.source || (s.bvid ? 'bilibili' : (s.qqMid ? 'qq' : (s.songId ? 'netease' : ''))),
+      songId: s.songId || null,
+      bvid: s.bvid || null,
+      page: s.page || null,
+      cid: s.cid || null,
+      qqMid: s.qqMid || null,
+      awemeId: s.awemeId || null
+    };
+  }
+  function sameSong(a, b) {
+    if (!a || !b) return false;
+    if (a.qqMid && b.qqMid && a.qqMid === b.qqMid) return true;
+    if (a.songId && b.songId && a.songId === b.songId) return true;
+    if (a.bvid && b.bvid && a.bvid === b.bvid && (a.page || 1) === (b.page || 1)) return true;
+    if (a.awemeId && b.awemeId && a.awemeId === b.awemeId) return true;
+    return !!keyOf(a.title) && keyOf(a.title) === keyOf(b.title) && keyOf(a.artist) === keyOf(b.artist);
+  }
+  function plHas(pl, song) {
+    var l = (pl && pl.songs) || [];
+    for (var i = 0; i < l.length; i++) if (sameSong(l[i], song)) return true;
+    return false;
+  }
+  function plCoverOf(pl) {
+    if (pl.cover) return pl.cover;
+    var s = (pl.songs || [])[0];
+    return (s && s.cover) || '';
+  }
+  function plCount(pl) { return (pl.songs || []).length; }
+
+  function plCreate(name, songs) {
+    var nm = String(name || '').trim().slice(0, 30) || ('我的歌单 ' + (myPlaylists().length + 1));
+    var pl = { id: plNewId(), name: nm, cover: '', ts: Date.now(), songs: [] };
+    (songs || []).forEach(function (s) {
+      if (s && s.title && !plHas(pl, s)) pl.songs.push(plNormSong(s));
+    });
+    myPlaylists().unshift(pl);
+    saveProfile();
+    renderMyPl();
+    return pl;
+  }
+
+  function plAddSongs(pl, songs) {
+    if (!pl) return { add: 0, dup: 0 };
+    var add = 0, dup = 0;
+    (songs || []).forEach(function (s) {
+      if (!s || !s.title) return;
+      if (plHas(pl, s)) { dup++; return; }
+      pl.songs.push(plNormSong(s));
+      add++;
+    });
+    if (add) { pl.ts = Date.now(); saveProfile(); renderMyPl(); }
+    return { add: add, dup: dup };
+  }
+
+  function plRemoveAt(pl, idx) {
+    if (!pl || idx < 0 || idx >= (pl.songs || []).length) return false;
+    pl.songs.splice(idx, 1);
+    saveProfile();
+    renderMyPl();
+    return true;
+  }
+
+  function plDelete(id) {
+    P.playlists = myPlaylists().filter(function (x) { return x.id !== id; });
+    saveProfile();
+    renderMyPl();
+  }
+
+  function plRename(id, name) {
+    var pl = plById(id);
+    if (!pl) return;
+    pl.name = String(name || '').trim().slice(0, 30) || pl.name;
+    saveProfile();
+    renderMyPl();
+  }
+
+  /** 同步给其他设备用的精简结构 */
+  function serializePlaylists() {
+    return myPlaylists().map(function (pl) {
+      return {
+        id: pl.id, name: pl.name, cover: pl.cover || '', ts: pl.ts || 0,
+        songs: (pl.songs || []).map(plNormSong)
+      };
+    });
+  }
+
+  function fmtCount(n) {
+    n = Number(n) || 0;
+    if (n >= 1e8) return (n / 1e8).toFixed(1).replace(/\.0$/, '') + '亿';
+    if (n >= 1e4) return (n / 1e4).toFixed(1).replace(/\.0$/, '') + '万';
+    return String(n);
+  }
+
+  /* ---- 我的歌单：横条 ---- */
+  function renderMyPl() {
+    var list = myPlaylists();
+    var html = '<button class="pl-chip new" data-plnew="1">' +
+      '<div class="cv">' + ICON.plus + '</div>' +
+      '<div class="nm">新建歌单</div><div class="ct">把歌收进来</div></button>';
+    list.forEach(function (pl) {
+      var cv = plCoverOf(pl);
+      html += '<button class="pl-chip" data-plopen="' + esc(pl.id) + '">' +
+        '<div class="cv">' +
+        (cv
+          ? '<img src="' + esc(cv) + '" loading="lazy" referrerpolicy="no-referrer" alt="">'
+          : '<span class="ph">' + esc(coverText(pl.name)) + '</span>') +
+        (plCount(pl) ? '<span class="cnt">' + plCount(pl) + '</span>' : '') +
+        '</div>' +
+        '<div class="nm">' + esc(pl.name) + '</div>' +
+        '<div class="ct">' + (plCount(pl) ? plCount(pl) + ' 首' : '空歌单') + '</div></button>';
+    });
+    el.myPl.innerHTML = html;
+  }
+
+  /* ---- QQ 音乐热门歌单：每次打开发现页都去读一遍 ---- */
+  function loadHotPl(force) {
+    if (HOTPL.loading) return;
+    if (!force && HOTPL.list.length && Date.now() - HOTPL.ts < 60 * 1000) return;
+    HOTPL.loading = true;
+    el.plRefresh.disabled = true;
+    if (!HOTPL.list.length) el.hotPl.innerHTML = '<p class="empty">正在从 QQ 音乐读取热门歌单…</p>';
+    apiReady.then(function () {
+      return fetch(api('/api/qq/playlists?limit=12&page=' + HOTPL.page)).then(function (r) { return r.json(); });
+    }).then(function (j) {
+      var list = (j && j.playlists) || [];
+      if (!list.length) {
+        el.hotPl.innerHTML = '<p class="empty">没读到热门歌单' + (j && j.error ? '<br>' + esc(j.error) : '') + '</p>';
+        return;
+      }
+      HOTPL.list = list;
+      HOTPL.ts = Date.now();
+      HOTPL.total = (j && j.total) || list.length;
+      renderHotPl();
+      el.hotPlSub.textContent = 'QQ 音乐实时榜 · ' + list.length + ' 个';
+    }).catch(function () {
+      el.hotPl.innerHTML = '<p class="empty">连不上服务，歌单读不出来</p>';
+    }).then(function () {
+      HOTPL.loading = false;
+      el.plRefresh.disabled = false;
+    });
+  }
+
+  function renderHotPl() {
+    el.hotPl.innerHTML = HOTPL.list.map(function (p) {
+      return '<button class="pl-card" data-plqq="' + esc(p.id) + '">' +
+        '<div class="cv">' +
+        (p.cover
+          ? '<img src="' + esc(p.cover) + '" loading="lazy" referrerpolicy="no-referrer" alt="">'
+          : '<span class="ph">' + esc(coverText(p.name)) + '</span>') +
+        '<span class="cnt">' + ICON.head + fmtCount(p.listen) + '</span>' +
+        '</div>' +
+        '<div class="nm">' + esc(p.name) + '</div>' +
+        '<div class="by">' + esc(p.creator || 'QQ 音乐') + '</div></button>';
+    }).join('');
+  }
+
+  /* ---- 歌单详情 ---- */
+  function openPlSheet(kind, id) {
+    PL.kind = kind;
+    PL.id = id;
+    PL.data = null;
+    PL.songs = [];
+    el.plSheet.classList.add('on');
+    el.plScrim.classList.add('on');
+    el.plSongs.innerHTML = '';
+
+    if (kind === 'mine') {
+      var pl = plById(id);
+      if (!pl) { closePlSheet(); return; }
+      PL.data = pl;
+      PL.songs = pl.songs || [];
+      paintPlHero();
+      renderPlSongs();
+      return;
+    }
+
+    PL.data = { name: '正在读取歌单…', creator: '', cover: '', desc: '' };
+    paintPlHero();
+    el.plSongs.innerHTML = '<p class="empty">正在从 QQ 音乐读取歌单…</p>';
+    apiReady.then(function () {
+      return fetch(api('/api/qq/playlist?id=' + encodeURIComponent(id) + '&limit=100')).then(function (r) { return r.json(); });
+    }).then(function (j) {
+      if (PL.kind !== 'qq' || PL.id !== id) return;   // 用户已经切到别的歌单
+      if (!j || !j.songs || !j.songs.length) {
+        el.plSongs.innerHTML = '<p class="empty">这个歌单读不出来' + (j && j.error ? '<br>' + esc(j.error) : '') + '</p>';
+        return;
+      }
+      PL.data = j;
+      PL.songs = j.songs.map(plNormSong);
+      paintPlHero();
+      renderPlSongs();
+    }).catch(function () {
+      if (PL.kind === 'qq' && PL.id === id) el.plSongs.innerHTML = '<p class="empty">连不上服务，歌单读不出来</p>';
+    });
+  }
+
+  function closePlSheet() {
+    PL.kind = null;
+    PL.id = null;
+    el.plSheet.classList.remove('on');
+    el.plScrim.classList.remove('on');
+  }
+
+  function paintPlHero() {
+    var d = PL.data || {};
+    var cv = d.cover || plCoverOf(d);
+    var meta = [];
+    if (d.creator) meta.push(d.creator);
+    meta.push((PL.songs.length || d.total || 0) + ' 首');
+    if (d.listen) meta.push(fmtCount(d.listen) + ' 次播放');
+    var tags = (d.tags || []).slice(0, 3).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join('');
+    el.plHero.innerHTML =
+      '<div class="cv">' +
+      (cv ? '<img src="' + esc(cv) + '" referrerpolicy="no-referrer" alt="">'
+          : '<span class="ph">' + esc(coverText(d.name)) + '</span>') +
+      '</div>' +
+      '<div class="meta"><h3>' + esc(d.name || '歌单') + '</h3>' +
+      '<p>' + (d.desc ? esc(d.desc) : meta.join(' · ')) + '</p>' +
+      (tags ? '<div class="tags">' + tags + '</div>' : '') +
+      '</div>';
+
+    var ops = '<button class="btn" data-poplay="1">播放全部</button>' +
+      '<button class="btn-ghost" data-poadd="1">全部加入列表</button>';
+    if (PL.kind === 'qq') {
+      ops += '<button class="btn-ghost" data-posave="1">存为我的歌单</button>';
+    } else {
+      ops += '<button class="btn-ghost" data-porename="1">重命名</button>' +
+        '<button class="btn danger" data-podel="1">删除歌单</button>';
+    }
+    el.plOps.innerHTML = ops;
+  }
+
+  function renderPlSongs() {
+    if (!PL.songs.length) {
+      el.plSongs.innerHTML = '<p class="empty">歌单还是空的<br>搜索结果点「⋯ → 加入歌单」就能收进来</p>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < PL.songs.length; i++) {
+      var s = PL.songs[i];
+      var on = isCurrentSong(s);
+      var badge = srcBadge(s.source) || '';
+      html += '<div class="row' + (on ? ' on' : '') + '" data-pli="' + i + '">' +
+        '<div class="r-idx">' + (i + 1) + '</div>' +
+        '<div class="r-art">' + artHtml(s.cover, s.title) + '</div>' +
+        '<div class="r-info"><div class="r-name">' + esc(s.title) + '</div>' +
+        '<div class="r-sub">' + esc(s.artist || '未知艺术家') + badge + '</div></div>' +
+        '<span class="r-dur">' + (s.dur ? fmt(s.dur) : '--:--') + '</span>' +
+        '<div class="r-acts"><button data-plmore="' + i + '" aria-label="更多操作">' + ICON.more + '</button></div>' +
+        '</div>';
+    }
+    el.plSongs.innerHTML = html;
+  }
+
+  /* ---- 单曲操作菜单 ---- */
+  function openAct(song, ctx) {
+    if (!song) return;
+    ACT.song = song;
+    ACT.ctx = ctx || {};
+    el.actSong.textContent = song.title + (song.artist ? ' · ' + song.artist : '');
+    var opts = [
+      { k: 'play', t: '立即播放', i: ICON.playO },
+      { k: 'next', t: '下一首播放', i: ICON.nextAdd },
+      { k: 'queue', t: '加入播放列表', i: ICON.plus },
+      { k: 'pl', t: '加入歌单…', i: ICON.listPlus },
+      { k: 'like', t: isLiked(song) ? '取消喜欢' : '喜欢这首歌', i: ICON.heart }
+    ];
+    if (ACT.ctx.kind === 'mine' && ACT.ctx.plId) {
+      opts.push({ k: 'rm', t: '从歌单移除', i: ICON.trash, d: 1 });
+    }
+    el.actList.innerHTML = opts.map(function (o) {
+      return '<button data-act="' + o.k + '"' + (o.d ? ' class="danger"' : '') + '>' + o.i + '<span>' + o.t + '</span></button>';
+    }).join('');
+    el.actSheet.classList.add('on');
+    el.actScrim.classList.add('on');
+  }
+  function closeAct() {
+    ACT.song = null;
+    ACT.ctx = {};
+    el.actSheet.classList.remove('on');
+    el.actScrim.classList.remove('on');
+  }
+
+  /* ---- 选择歌单 ---- */
+  function openPick(song, songs) {
+    PICK.song = song || null;
+    PICK.songs = songs || null;
+    var n = songs ? songs.length : (song ? 1 : 0);
+    el.pickCount.textContent = n ? n + ' 首' : '';
+    var html = '';
+    myPlaylists().forEach(function (pl) {
+      var cv = plCoverOf(pl);
+      html += '<div class="pick-row" data-pick="' + esc(pl.id) + '">' +
+        '<div class="cv">' +
+        (cv ? '<img src="' + esc(cv) + '" loading="lazy" referrerpolicy="no-referrer" alt="">'
+            : '<span class="ph">' + esc(coverText(pl.name)) + '</span>') +
+        '</div>' +
+        '<div class="t"><b>' + esc(pl.name) + '</b><span>' + plCount(pl) + ' 首</span></div>' +
+        '<button class="btn-ghost" style="flex:none;margin-left:auto">加入</button></div>';
+    });
+    html += '<div class="pick-row" data-picknew="1">' +
+      '<div class="cv plus">' + ICON.plus + '</div>' +
+      '<div class="t"><b>新建歌单</b><span>边加边建，名字自己起</span></div></div>';
+    el.pickList.innerHTML = html;
+    el.pickSheet.classList.add('on');
+    el.pickScrim.classList.add('on');
+  }
+  function closePick() {
+    PICK.song = null;
+    PICK.songs = null;
+    el.pickSheet.classList.remove('on');
+    el.pickScrim.classList.remove('on');
+  }
+
+  /* ---- 命名弹层 ---- */
+  var NAME = { cb: null };
+  function askName(title, desc, value, cb) {
+    NAME.cb = cb;
+    el.nameTitle.textContent = title;
+    el.nameDesc.textContent = desc || '';
+    el.nameInput.value = value || '';
+    el.nameMask.hidden = false;
+    setTimeout(function () { el.nameInput.focus(); el.nameInput.select(); }, 60);
+  }
+  function closeName() {
+    el.nameMask.hidden = true;
+    NAME.cb = null;
+  }
+  el.nameOk.addEventListener('click', function () {
+    var v = el.nameInput.value.trim();
+    if (!v) { el.nameInput.focus(); return; }
+    var cb = NAME.cb;
+    closeName();
+    if (cb) cb(v);
+  });
+  el.nameCancel.addEventListener('click', closeName);
+  el.nameMask.addEventListener('click', function (e) { if (e.target === el.nameMask) closeName(); });
+
+  /* ---- 多行文本弹层（粘贴导入用） ---- */
+  var PASTE = { cb: null };
+  function askText(cb) {
+    PASTE.cb = cb;
+    el.pasteInput.value = '';
+    el.pasteMask.hidden = false;
+  }
+  function closePaste() {
+    el.pasteMask.hidden = true;
+    PASTE.cb = null;
+  }
+  el.pasteOk.addEventListener('click', function () {
+    var v = el.pasteInput.value.trim();
+    if (!v) { el.pasteInput.focus(); return; }
+    var cb = PASTE.cb;
+    closePaste();
+    if (cb) cb(v);
+  });
+  el.pasteCancel.addEventListener('click', closePaste);
+  el.pasteMask.addEventListener('click', function (e) { if (e.target === el.pasteMask) closePaste(); });
+  el.nameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.nameOk.click(); } });
+
+  /* ---- 入口绑定 ---- */
+  el.plRefresh.addEventListener('click', function () {
+    HOTPL.page = (HOTPL.page + 1) % 8;   // 每次换一批：往后翻一页热门榜
+    loadHotPl(true);
+  });
+  el.myPl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-plnew]')) {
+      askName('新建歌单', '新歌单会出现在「我的歌单」里，点开就能加歌', '', function (name) {
+        var pl = plCreate(name);
+        renderMyPl();
+        toast('已创建歌单《' + pl.name + '》');
+        openPlSheet('mine', pl.id);
+      });
+      return;
+    }
+    var b = e.target.closest('[data-plopen]');
+    if (b) openPlSheet('mine', b.getAttribute('data-plopen'));
+  });
+  el.plNew.addEventListener('click', function () {
+    askName('新建歌单', '新歌单会出现在「我的歌单」里，点开就能加歌', '', function (name) {
+      var pl = plCreate(name);
+      renderMyPl();
+      toast('已创建歌单《' + pl.name + '》');
+      openPlSheet('mine', pl.id);
+    });
+  });
+  el.hotPl.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-plqq]');
+    if (!b) return;
+    openPlSheet('qq', b.getAttribute('data-plqq'));
+  });
+  el.plScrim.addEventListener('click', closePlSheet);
+  el.plSheet.addEventListener('click', function (e) {
+    if (e.target.closest('.sheet-grab')) closePlSheet();
+  });
+  el.actScrim.addEventListener('click', closeAct);
+  el.actSheet.addEventListener('click', function (e) {
+    if (e.target.closest('.sheet-grab')) closeAct();
+  });
+  el.pickScrim.addEventListener('click', closePick);
+  el.pickSheet.addEventListener('click', function (e) {
+    if (e.target.closest('.sheet-grab')) closePick();
+  });
+
+  el.plOps.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-poplay],[data-poadd],[data-posave],[data-porename],[data-podel]');
+    if (!b) return;
+    if (!PL.songs.length && !b.hasAttribute('data-podel') && !b.hasAttribute('data-porename') && !b.hasAttribute('data-posave')) {
+      toast('歌单里还没有歌');
+      return;
+    }
+    if (b.hasAttribute('data-poplay')) {
+      playFromList(PL.songs, 0, 'meta');
+      closePlSheet();
+      toast('开始播放《' + (PL.data.name || '歌单') + '》');
+      return;
+    }
+    if (b.hasAttribute('data-poadd')) {
+      bulkAdd(PL.songs, 'meta');
+      return;
+    }
+    if (b.hasAttribute('data-posave')) {
+      var songs = PL.songs.slice();
+      askName('存为我的歌单', '会把这 ' + songs.length + ' 首复制到一个新歌单', PL.data.name || '', function (name) {
+        var pl = plCreate(name, songs);
+        toast('已存为我的歌单《' + pl.name + '》· ' + pl.songs.length + ' 首');
+      });
+      return;
+    }
+    if (b.hasAttribute('data-porename')) {
+      var cur = PL.data.name;
+      askName('重命名歌单', '', cur, function (name) {
+        plRename(PL.id, name);
+        PL.data = plById(PL.id) || PL.data;
+        paintPlHero();
+        toast('歌单名已改为《' + PL.data.name + '》');
+      });
+      return;
+    }
+    if (b.hasAttribute('data-podel')) {
+      if (b.getAttribute('data-armed') !== '1') {
+        b.setAttribute('data-armed', '1');
+        b.textContent = '再点一次确认删除';
+        setTimeout(function () {
+          if (b && b.isConnected) { b.removeAttribute('data-armed'); b.textContent = '删除歌单'; }
+        }, 3200);
+        return;
+      }
+      var nm = PL.data.name;
+      plDelete(PL.id);
+      closePlSheet();
+      toast('已删除歌单《' + nm + '》');
+    }
+  });
+
+  el.plSongs.addEventListener('click', function (e) {
+    var i = -1;
+    var row = e.target.closest('[data-pli]');
+    if (row) i = Number(row.getAttribute('data-pli'));
+    var more = e.target.closest('[data-plmore]');
+    if (more) i = Number(more.getAttribute('data-plmore'));
+    var s = PL.songs[i];
+    if (!s) return;
+    if (more) {
+      openAct(s, { kind: PL.kind, plId: PL.id, index: i });
+      return;
+    }
+    playFromList(PL.songs, i, 'meta');
+  });
+
+  el.actList.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var k = b.getAttribute('data-act');
+    var s = ACT.song;
+    var ctx = ACT.ctx || {};
+    closeAct();
+    if (!s) return;
+    if (k === 'play') {
+      playSingle(s, s.dur != null ? 'meta' : 'ne');
+    } else if (k === 'next') {
+      playNextOf(s);
+    } else if (k === 'queue') {
+      if (findQueued(s)) { toast('《' + s.title + '》已经在列表里了'); return; }
+      commitAdd(s.dur != null ? queueMeta(s) : queueSong(s));
+      refreshRows();
+    } else if (k === 'pl') {
+      openPick(s);
+    } else if (k === 'like') {
+      toggleLikeSong(s);
+      refreshRows();
+      if (PL.kind) renderPlSongs();
+    } else if (k === 'rm') {
+      var pl = plById(ctx.plId);
+      if (!pl) return;
+      var idx = ctx.index;
+      if (idx == null && s) {
+        for (var j = 0; j < pl.songs.length; j++) if (sameSong(pl.songs[j], s)) { idx = j; break; }
+      }
+      if (idx == null) return;
+      plRemoveAt(pl, idx);
+      if (PL.id === pl.id) {
+        PL.songs = pl.songs;
+        paintPlHero();
+        renderPlSongs();
+      }
+      toast('已从歌单移除');
+    }
+  });
+
+  el.pickList.addEventListener('click', function (e) {
+    var songs = PICK.songs || (PICK.song ? [PICK.song] : []);
+    if (!songs.length) return;
+    if (e.target.closest('[data-picknew]')) {
+      var list = songs.slice();
+      closePick();
+      askName('新建歌单', '这 ' + list.length + ' 首会一起放进去', '', function (name) {
+        var pl = plCreate(name, list);
+        toast('已创建《' + pl.name + '》· ' + pl.songs.length + ' 首');
+      });
+      return;
+    }
+    var row = e.target.closest('[data-pick]');
+    if (!row) return;
+    var pl = plById(row.getAttribute('data-pick'));
+    if (!pl) return;
+    var r = plAddSongs(pl, songs);
+    closePick();
+    if (!r.add) toast('《' + pl.name + '》里已经有这些歌了');
+    else toast('已加入《' + pl.name + '》· ' + r.add + ' 首' + (r.dup ? '（' + r.dup + ' 首重复）' : ''));
+    if (PL.kind === 'mine' && PL.id === pl.id) {
+      PL.songs = pl.songs;
+      paintPlHero();
+      renderPlSongs();
+    }
+  });
+
+  el.qSave.addEventListener('click', function () {
+    var songs = S.tracks.filter(function (t) { return t.remote; }).map(function (t) {
+      return {
+        title: t.title, artist: t.artist, cover: t.cover, dur: t.dur, source: t.source,
+        songId: t.songId, bvid: t.bvid, page: t.page, cid: t.cid, qqMid: t.qqMid, awemeId: t.awemeId
+      };
+    });
+    if (!songs.length) { toast('列表里还没有在线歌曲'); return; }
+    var d = new Date();
+    closeSheet();
+    askName('存成歌单', '把列表里这 ' + songs.length + ' 首存进一个新歌单', '播放列表 ' + (d.getMonth() + 1) + '/' + d.getDate(), function (name) {
+      var pl = plCreate(name, songs);
+      toast('已存为歌单《' + pl.name + '》· ' + pl.songs.length + ' 首');
+    });
+  });
+
+  /* ---------------- 存储与缓存（自动清理） ---------------- */
+  var CACHE_KEY = 'listen.cache.v1';
+  var CACHE = { auto: true, last: 0, cleaned: 0 };
+  try {
+    var sc = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (sc && typeof sc === 'object') {
+      CACHE.auto = sc.auto !== false;
+      CACHE.last = sc.last || 0;
+      CACHE.cleaned = sc.cleaned || 0;
+    }
+  } catch (e) {}
+
+  // APP 内由原生注入 EarSide；网页端没有这个对象，自动降级
+  var NATIVE = (typeof window.EarSide !== 'undefined' && window.EarSide) ? window.EarSide : null;
+  var CLEAN_MAX = 200 * 1024 * 1024;   // 超过 200MB 自动清
+  var CLEAN_DAYS = 7;                  // 超过 7 天自动清
+
+  function saveCacheMeta() {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(CACHE)); } catch (e) {}
+  }
+
+  function fmtBytes(n) {
+    n = Number(n) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(0) + ' KB';
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
+  }
+
+  function fmtAgo(ts) {
+    if (!ts) return '从未';
+    var d = Date.now() - ts;
+    if (d < 60000) return '刚刚';
+    if (d < 3600000) return Math.floor(d / 60000) + ' 分钟前';
+    if (d < 86400000) return Math.floor(d / 3600000) + ' 小时前';
+    return Math.floor(d / 86400000) + ' 天前';
+  }
+
+  // 本地数据体积（UTF-16 估算）：只统计、不删除
+  function localDataBytes() {
+    var n = 0;
+    var keys = ['listen.profile.v1', 'listen.history.v1', 'listen.auth.v1', 'listen.cache.v1', 'listen.device.v1'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var v = localStorage.getItem(keys[i]);
+        if (v) n += (v.length + keys[i].length) * 2;
+      } catch (e) {}
+    }
+    return n;
+  }
+
+  function nativeCacheInfo() {
+    if (!NATIVE) return null;
+    try {
+      var raw = NATIVE.cacheInfo();
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      return (o && typeof o.bytes === 'number') ? o : null;
+    } catch (e) { return null; }
+  }
+
+  /* ---------------- 音频离线缓存（服务端磁盘上的那份） ---------------- */
+  var AUDIO_CACHE = { count: 0, bytes: 0, enabled: true };
+
+  function audioCacheApply(d) {
+    if (!d || typeof d.bytes !== 'number') return;
+    AUDIO_CACHE = d;
+    if (el.audioCacheSize) {
+      el.audioCacheSize.textContent = d.count
+        ? (fmtBytes(d.bytes) + ' · ' + d.count + ' 首')
+        : '暂无';
+    }
+    if (el.audioCacheOn) el.audioCacheOn.checked = d.enabled !== false;
+  }
+
+  function audioCacheRefresh() {
+    return fetch(api('/api/audio-cache'), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(audioCacheApply)
+      .catch(function () {
+        if (el.audioCacheSize) el.audioCacheSize.textContent = '—';
+      });
+  }
+
+  function audioCacheToggle(on) {
+    fetch(api('/api/audio-cache?on=' + (on ? 1 : 0)), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        audioCacheApply(d);
+        toast(on ? '已开启音频离线缓存' : '已关闭音频离线缓存');
+      })
+      .catch(function () {
+        if (el.audioCacheOn) el.audioCacheOn.checked = !on;
+        toast('设置失败，请稍后再试');
+      });
+  }
+
+  function audioCacheClear() {
+    return fetch(api('/api/audio-cache?clear=1'), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        audioCacheApply(d);
+        return d.removed || 0;
+      })
+      .catch(function () { return 0; });
+  }
+
+  function renderCacheCard() {
+    if (!el.cacheSize) return;
+    var info = nativeCacheInfo();
+    if (info) {
+      var b = info.bytes || 0;
+      el.cacheSize.textContent = fmtBytes(b);
+      if (el.cacheBar) el.cacheBar.style.width = Math.max(2, Math.min(100, b / CLEAN_MAX * 100)) + '%';
+    } else {
+      el.cacheSize.textContent = '—';
+      if (el.cacheBar) el.cacheBar.style.width = '0%';
+      if (navigator.storage && navigator.storage.estimate) {
+        navigator.storage.estimate().then(function (est) {
+          var u = (est && est.usage) || 0;
+          if (u) {
+            el.cacheSize.textContent = fmtBytes(u);
+            if (el.cacheBar) el.cacheBar.style.width = Math.max(2, Math.min(100, u / CLEAN_MAX * 100)) + '%';
+          }
+        }).catch(function () {});
+      }
+    }
+    el.dataSize.textContent = fmtBytes(localDataBytes());
+    el.cacheLast.textContent = fmtAgo(CACHE.last);
+    if (el.cacheAuto) el.cacheAuto.checked = !!CACHE.auto;
+    audioCacheRefresh();
+  }
+
+  // 清理：APP 内清原生磁盘缓存；网页端只清临时数据（浏览器缓存交给浏览器）
+  // 两边都会把服务端磁盘上的音频离线缓存一起清掉
+  function cleanCache(silent) {
+    var info = nativeCacheInfo();
+    var before = info ? (info.bytes || 0) : 0;
+    if (NATIVE && NATIVE.clearCache) {
+      try { NATIVE.clearCache('all'); } catch (e) {}
+    }
+    CACHE.last = Date.now();
+    saveCacheMeta();
+
+    var audioRemoved = 0;
+    var audioDone = audioCacheClear().then(function (n) { audioRemoved = n; });
+
+    renderCacheCard();
+    if (!NATIVE) {
+      audioDone.then(function () {
+        if (silent) return;
+        toast(audioRemoved ? ('已清理 ' + audioRemoved + ' 首音频缓存') : '已清理临时数据');
+      });
+      return;
+    }
+    setTimeout(function () {
+      var after = (nativeCacheInfo() || {}).bytes || 0;
+      var freed = Math.max(0, before - after);
+      if (freed > 0) { CACHE.cleaned = (CACHE.cleaned || 0) + freed; saveCacheMeta(); }
+      renderCacheCard();
+      if (!silent) {
+        audioDone.then(function () {
+          var bits = [];
+          if (freed > 0) bits.push(fmtBytes(freed) + ' 缓存');
+          if (audioRemoved) bits.push(audioRemoved + ' 首音频');
+          toast(bits.length ? ('已清理 ' + bits.join(' · ')) : '缓存已经很干净了');
+        });
+      } else if (freed > 30 * 1024 * 1024) toast('已自动清理 ' + fmtBytes(freed) + ' 缓存');
+    }, 700);
+  }
+
+  // 自动清理：体积超阈值或太久没清
+  function autoCleanCheck() {
+    if (!CACHE.auto) return;
+    var info = nativeCacheInfo();
+    if (!info) {   // 网页端：只记录时间，不打扰
+      if (CACHE.last && Date.now() - CACHE.last > CLEAN_DAYS * 864e5) { CACHE.last = Date.now(); saveCacheMeta(); }
+      return;
+    }
+    var bytes = info.bytes || 0;
+    var idleDays = CACHE.last ? (Date.now() - CACHE.last) / 864e5 : 999;
+    if (bytes > CLEAN_MAX || (idleDays > CLEAN_DAYS && bytes > 20 * 1024 * 1024)) cleanCache(true);
+    else if (idleDays > CLEAN_DAYS) { CACHE.last = Date.now(); saveCacheMeta(); }
+  }
+
+  if (el.cacheClean) {
+    el.cacheClean.addEventListener('click', function () { cleanCache(false); });
+  }
+  if (el.cacheAuto) {
+    el.cacheAuto.addEventListener('change', function () {
+      CACHE.auto = !!el.cacheAuto.checked;
+      saveCacheMeta();
+      if (NATIVE && NATIVE.setAutoClean) { try { NATIVE.setAutoClean(CACHE.auto); } catch (e) {} }
+      toast(CACHE.auto ? '已开启自动清理' : '已关闭自动清理');
+    });
+  }
+  if (el.audioCacheOn) {
+    el.audioCacheOn.addEventListener('change', function () {
+      audioCacheToggle(!!el.audioCacheOn.checked);
+    });
+  }
+
+  // 回到前台时刷新占用并顺带检查一次（10 分钟内不重复）
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    if (window.__cacheCheckAt && Date.now() - window.__cacheCheckAt < 600000) return;
+    window.__cacheCheckAt = Date.now();
+    renderCacheCard();
+    autoCleanCheck();
+  });
+
+  /* ---------------- 数据备份：导出 / 导入 ----------------
+   * 全程在本机完成，不经过任何服务器。
+   * 导出：网页端直接下载 .json；APP 内下载不可用，改为复制到剪贴板（发微信给自己即可）
+   * 导入：选文件，或直接粘贴文本。合并式，不会覆盖已有数据。
+   */
+  var BACKUP_KEYS = [
+    { k: 'listen.profile.v1', field: 'profile' },
+    { k: 'listen.history.v1', field: 'history' },
+    { k: 'listen.lyric.off.v1', field: 'lyricOff' }
+  ];
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text)
+        .then(function () { return true; })
+        .catch(function () { return legacyCopy(text); });
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  function legacyCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  function buildBackup() {
+    var dump = { app: 'erbian', ver: 1, at: Date.now(), data: {} };
+    BACKUP_KEYS.forEach(function (x) {
+      try {
+        var v = localStorage.getItem(x.k);
+        if (v) dump.data[x.field] = JSON.parse(v);
+      } catch (e) {}
+    });
+    return dump;
+  }
+
+  function downloadText(name, text) {
+    try {
+      var blob = new Blob([text], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        try { URL.revokeObjectURL(url); } catch (e) {}
+        a.remove();
+      }, 2000);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function exportBackup() {
+    var dump = buildBackup();
+    var text = JSON.stringify(dump);
+    var d = new Date();
+    var stamp = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    var name = 'erbian-backup-' + stamp + '.json';
+    var prof = dump.data.profile || {};
+    var nPl = (prof.playlists || []).length;
+    var nLk = (prof.liked || []).length;
+    var brief = nPl + ' 个歌单 · ' + nLk + ' 首喜欢 · ' + text.length + ' 字符';
+
+    // APP 内 WebView 不触发下载，走剪贴板
+    if (NATIVE) {
+      copyText(text).then(function (ok) {
+        toast(ok
+          ? ('备份已复制（' + brief + '），粘贴到微信发给自己，到新手机粘贴导入')
+          : '复制失败，请改用「粘贴导入」手动输入');
+      });
+      return;
+    }
+    if (downloadText(name, text)) {
+      toast('已导出 ' + brief);
+    } else {
+      copyText(text).then(function (ok) {
+        toast(ok ? ('下载不可用，已复制到剪贴板（' + brief + '）') : '导出失败，请重试');
+      });
+    }
+  }
+
+  function bkKey(s) {
+    return keyOf(String((s && s.title) || '') + '|' + String((s && s.artist) || ''));
+  }
+
+  /** 合并式导入：同名歌单合并歌曲，其他按歌名+歌手去重 */
+  function mergeBackup(raw) {
+    var dump = raw;
+    if (typeof raw === 'string') {
+      try { dump = JSON.parse(raw); } catch (e) { throw new Error('不是有效的备份内容'); }
+    }
+    if (!dump || typeof dump !== 'object') throw new Error('不是有效的备份内容');
+    var d = dump.data || dump;          // 兼容被摊平的数据
+    var prof = d.profile || d;
+    var got = { playlists: 0, songs: 0, liked: 0, plays: 0, words: 0 };
+
+    // 1) 歌单：同名合并，不同名整个加进来
+    var inPl = Array.isArray(prof.playlists) ? prof.playlists : [];
+    if (inPl.length) {
+      var mine = myPlaylists();
+      inPl.forEach(function (src) {
+        if (!src || !src.name) return;
+        var songs = Array.isArray(src.songs) ? src.songs : [];
+        var hit = null;
+        for (var i = 0; i < mine.length; i++) {
+          if (keyOf(mine[i].name) === keyOf(src.name)) { hit = mine[i]; break; }
+        }
+        if (!hit) {
+          var np = { id: plNewId(), name: String(src.name).slice(0, 40), songs: [] };
+          songs.forEach(function (s) { if (s && (s.title || s.id)) np.songs.push(s); });
+          mine.push(np);
+          got.playlists++;
+          got.songs += np.songs.length;
+          return;
+        }
+        if (!Array.isArray(hit.songs)) hit.songs = [];
+        var have = {};
+        hit.songs.forEach(function (s) { have[bkKey(s)] = 1; });
+        songs.forEach(function (s) {
+          var kk = bkKey(s);
+          if (!kk || kk === '|' || have[kk]) return;
+          have[kk] = 1;
+          hit.songs.push(s);
+          got.songs++;
+        });
+      });
+      P.playlists = mine;
+    }
+
+    // 2) 我喜欢
+    var inLiked = Array.isArray(prof.liked) ? prof.liked : [];
+    if (inLiked.length) {
+      if (!Array.isArray(P.liked)) P.liked = [];
+      var haveL = {};
+      P.liked.forEach(function (s) { haveL[bkKey(s)] = 1; });
+      inLiked.forEach(function (s) {
+        var kk = bkKey(s);
+        if (!kk || kk === '|' || haveL[kk]) return;
+        haveL[kk] = 1;
+        P.liked.push(s);
+        got.liked++;
+      });
+    }
+
+    // 3) 播放历史：按时间合并，只留最近 20 条
+    var inPlays = Array.isArray(prof.plays) ? prof.plays : [];
+    if (inPlays.length) {
+      if (!Array.isArray(P.plays)) P.plays = [];
+      var before = P.plays.length;
+      var seen = {};
+      var all = P.plays.concat(inPlays).filter(function (s) {
+        var tk = bkKey(s) + '|' + (s && s.ts ? s.ts : 0);
+        if (seen[tk]) return false;
+        seen[tk] = 1;
+        return true;
+      });
+      all.sort(function (a, b) { return ((a && a.ts) || 0) - ((b && b.ts) || 0); });
+      P.plays = all.slice(-20);
+      got.plays = Math.max(0, P.plays.length - before);
+    }
+
+    // 4) 跳过记录（影响推荐，一起带过来）
+    var inSkip = Array.isArray(prof.skipped) ? prof.skipped : [];
+    if (inSkip.length) {
+      if (!Array.isArray(P.skipped)) P.skipped = [];
+      var haveS = {};
+      P.skipped.forEach(function (s) { haveS[bkKey(s)] = 1; });
+      inSkip.forEach(function (s) {
+        var kk = bkKey(s);
+        if (!kk || kk === '|' || haveS[kk]) return;
+        haveS[kk] = 1;
+        P.skipped.push(s);
+      });
+    }
+
+    // 5) 搜索关键词历史
+    var inWords = Array.isArray(d.history) ? d.history : [];
+    if (inWords.length) {
+      var cur = [];
+      try { cur = JSON.parse(localStorage.getItem(HIS_KEY) || '[]'); } catch (e) {}
+      var merged = cur.slice();
+      inWords.forEach(function (w) {
+        if (typeof w === 'string' && w && merged.indexOf(w) < 0) { merged.push(w); got.words++; }
+      });
+      try { localStorage.setItem(HIS_KEY, JSON.stringify(merged.slice(0, 10))); } catch (e) {}
+      if (typeof renderHistoryTags === 'function') renderHistoryTags();
+    }
+
+    // 6) 歌词手动校准值
+    if (d.lyricOff && typeof d.lyricOff === 'object') {
+      var offNow = {};
+      try { offNow = JSON.parse(localStorage.getItem('listen.lyric.off.v1') || '{}') || {}; } catch (e) {}
+      Object.keys(d.lyricOff).forEach(function (k) {
+        if (offNow[k] === undefined) offNow[k] = d.lyricOff[k];
+      });
+      try { localStorage.setItem('listen.lyric.off.v1', JSON.stringify(offNow)); } catch (e) {}
+      if (typeof LY !== 'undefined' && LY && LY.key) LY.refit = true;   // 下次进歌词页重新读
+    }
+
+    saveProfile();
+
+    // 界面刷新
+    try { if (typeof renderMyPl === 'function') renderMyPl(); } catch (e) {}
+    try { if (typeof renderLikes === 'function') renderLikes(); } catch (e) {}
+    try { if (typeof renderHistory === 'function') renderHistory(); } catch (e) {}
+    try { if (typeof renderStats === 'function') renderStats(); } catch (e) {}
+    try { if (typeof renderRecs === 'function') renderRecs(); } catch (e) {}
+    try { if (typeof renderQueue === 'function') renderQueue(); } catch (e) {}
+
+    return got;
+  }
+
+  function reportImport(got) {
+    var bits = [];
+    if (got.playlists) bits.push('新增 ' + got.playlists + ' 个歌单');
+    if (got.songs) bits.push(got.songs + ' 首歌');
+    if (got.liked) bits.push('喜欢 +' + got.liked);
+    if (got.plays) bits.push('历史 +' + got.plays);
+    if (got.words) bits.push('搜索词 +' + got.words);
+    if (el.backupTip) {
+      el.backupTip.textContent = bits.length
+        ? ('导入完成：' + bits.join(' · '))
+        : '导入完成：这份备份里的内容本地都已经有了';
+    }
+    toast(bits.length ? ('已导入 ' + bits.join(' · ')) : '数据已是最新，没有需要合并的内容');
+  }
+
+  function importBackupText(text) {
+    var got;
+    try {
+      got = mergeBackup(text);
+    } catch (e) {
+      toast('导入失败：' + e.message);
+      return null;
+    }
+    reportImport(got);
+    return got;
+  }
+
+  function importBackupFile(file) {
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { toast('文件太大，可能不是备份文件'); return; }
+    var fr = new FileReader();
+    fr.onload = function () { importBackupText(String(fr.result || '')); };
+    fr.onerror = function () { toast('读取文件失败'); };
+    fr.readAsText(file);
+  }
+
+  if (el.exportBtn) el.exportBtn.addEventListener('click', exportBackup);
+  if (el.importBtn) {
+    el.importBtn.addEventListener('click', function () {
+      if (el.importFile) el.importFile.click();
+    });
+  }
+  if (el.importFile) {
+    el.importFile.addEventListener('change', function () {
+      importBackupFile(el.importFile.files && el.importFile.files[0]);
+      el.importFile.value = '';
+    });
+  }
+  if (el.importPasteBtn) {
+    el.importPasteBtn.addEventListener('click', function () {
+      askText(function (txt) {
+        if (!txt) return;
+        importBackupText(txt);
+      });
+    });
+  }
+
+  // APP 内才显示「服务器」卡片（本地版不显示：服务就在手机里）
+  (function initServerCard() {
+    if (!NATIVE) return;
+    var card = $('#serverCard'), now = $('#serverNow'), btn = $('#serverBtn');
+    if (!card) return;
+    var local = false;
+    try { local = typeof NATIVE.isLocal === 'function' && NATIVE.isLocal() === '1'; } catch (e) {}
+    card.hidden = local ? true : false;
+    if (local) return;
+    try { if (now) now.textContent = NATIVE.currentServer(); } catch (e) {}
+    if (NATIVE.setAutoClean) { try { NATIVE.setAutoClean(CACHE.auto); } catch (e) {} }
+    if (btn) btn.addEventListener('click', function () {
+      try { NATIVE.openSettings(); } catch (e) {}
+    });
+  })();
+
+  /* ---------------- 搜索 ---------------- */
+  var searching = false;
+
+  function pushHistory(kw) {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(HIS_KEY) || '[]'); } catch (e) {}
+    list = list.filter(function (x) { return x !== kw; });
+    list.unshift(kw);
+    list = list.slice(0, 10);
+    try { localStorage.setItem(HIS_KEY, JSON.stringify(list)); } catch (e) {}
+    renderHistoryTags();
+  }
+
+  function renderHistoryTags() {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(HIS_KEY) || '[]'); } catch (e) {}
+    el.hisH.hidden = !list.length;
+    el.hisTags.innerHTML = list.map(function (x) {
+      return '<button class="tag" data-kw="' + esc(x) + '">' + esc(x) + '</button>';
+    }).join('');
+  }
+
+  function renderHotTags() {
+    var hot = ['周杰伦', '陈奕迅', '林俊杰', '邓紫棋', '薛之谦', '毛不易', '五月天', 'Beyond', '李荣浩', '告五人'];
+    el.hotTags.innerHTML = hot.map(function (x) {
+      return '<button class="tag" data-kw="' + x + '">' + x + '</button>';
+    }).join('');
+  }
+
+  var tagWrap = [el.hotTags, el.hisTags];
+  tagWrap.forEach(function (box) {
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-kw]');
+      if (!b) return;
+      el.kw.value = b.getAttribute('data-kw');
+      doSearch();
+    });
+  });
+
+  function doSearch() {
+    var kw = (el.kw.value || '').trim();
+    if (!kw || searching) return;
+    searching = true;
+    el.searchBtn.disabled = true;
+    el.sugBox.hidden = true;
+    el.resBox.hidden = false;
+    el.results.innerHTML = '<p class="empty">搜索中…</p>';
+    el.resCount.textContent = '搜索结果';
+
+    apiReady.then(function (st) {
+      if (!st.ok) throw new Error('OFFLINE');
+      return fetch(api('/api/search?kw=' + encodeURIComponent(kw) + '&limit=30&src=' + S.src));
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) throw new Error(j.error);
+        S.results = j.songs || [];
+        renderResults();
+        if (S.results.length) {
+          el.resCount.textContent = '找到 ' + (j.total || S.results.length) + ' 首';
+          pushHistory(kw);
+        } else if (S.src === 'douyin' && j.lastError === 'NEED_LOGIN') {
+          el.results.innerHTML = '<p class="empty">抖音还没登录，搜不了<br>去「我的 → 音源账号」登录后再试</p>';
+        } else if (j.lastError) {
+          el.results.innerHTML = '<p class="empty">这个音源暂时搜不了：' + esc(j.lastError) + '<br>换一个音源标签试试</p>';
+        }
+      })
+      .catch(function (e) {
+        S.results = [];
+        if (e.message === 'OFFLINE') {
+          el.banner.hidden = false;
+          el.results.innerHTML = '<p class="empty">没连上音乐服务<br>稍等几秒再试</p>';
+        } else {
+          el.results.innerHTML = '<p class="empty">搜索失败：' + esc(e.message) + '<br>换个关键词试试</p>';
+        }
+      })
+      .then(function () {
+        searching = false;
+        el.searchBtn.disabled = false;
+      });
+  }
+
+  function renderResults() {
+    if (!S.results.length) {
+      // 空结果：先给默认文案，doSearch 里会按 lastError 覆盖成更具体的原因
+      el.results.innerHTML = '<p class="empty">没搜到，换个关键词试试</p>';
+      return;
+    }
+    var out = '';
+    for (var i = 0; i < S.results.length; i++) {
+      var s = S.results[i];
+      var queued = !!findQueued(s);
+      var on = isCurrentSong(s);
+      var badge = srcBadge(s.source) || (s.bvid ? '<i class="src bili">B 站</i>' : (s.songId ? '<i class="src ne">网易云</i>' : ''));
+      out += '<div class="row' + (on ? ' on' : '') + '" data-i="' + i + '">' +
+        '<div class="r-art">' + artHtml(s.cover, s.title) + '</div>' +
+        '<div class="r-info"><div class="r-name">' + esc(s.title) + '</div>' +
+        '<div class="r-sub">' + esc(s.artist || '未知艺术家') + (s.album ? '<em> · ' + esc(s.album) + '</em>' : '') + badge + '</div></div>' +
+        '<span class="r-dur">' + fmt((s.duration || 0) / 1000) + '</span>' +
+        '<div class="r-acts">' +
+        '<button data-playnow="' + i + '" aria-label="播放">' + ICON.play + '</button>' +
+        '<button data-next="' + i + '" aria-label="下一首播放">' + ICON.nextAdd + '</button>' +
+        '<button data-add="' + i + '" class="' + (queued ? 'queued' : '') + '" aria-label="加入列表末尾">' +
+        (queued ? ICON.check : ICON.plus) + '</button>' +
+        '<button data-like="' + i + '" class="like' + (isLiked(s) ? ' on' : '') + '" aria-label="喜欢">' + ICON.heart + '</button>' +
+        '<button data-more="' + i + '" aria-label="更多操作">' + ICON.more + '</button>' +
+        '</div></div>';
+    }
+    el.results.innerHTML = out;
+    prefetchBatch(S.results, 2);   // 前两首先备好，点了就出声
+  }
+
+  function isCurrentSong(s) {
+    if (!s) return false;
+    var t = current();
+    if (!t || !t.remote) return false;
+    if (s.songId && t.songId === s.songId) return true;
+    if (s.qqMid && t.qqMid === s.qqMid) return true;
+    if (s.awemeId && t.awemeId === s.awemeId) return true;
+    return !!(s.bvid && t.bvid === s.bvid && (s.page || 1) === (t.page || 1));
+  }
+
+  function refreshRows() {
+    var items = el.results.querySelectorAll('.row');
+    for (var i = 0; i < items.length; i++) {
+      var s = S.results[Number(items[i].getAttribute('data-i'))];
+      if (!s) continue;
+      items[i].classList.toggle('on', isCurrentSong(s));
+      var addBtn = items[i].querySelector('[data-add]');
+      if (addBtn) {
+        var q = !!findQueued(s);
+        addBtn.classList.toggle('queued', q);
+        addBtn.innerHTML = q ? ICON.check : ICON.plus;
+      }
+      var likeBtn = items[i].querySelector('[data-like]');
+      if (likeBtn) likeBtn.classList.toggle('on', isLiked(s));
+    }
+    var recs = el.recList.querySelectorAll('.row');
+    for (var k = 0; k < recs.length; k++) {
+      var r = R.list[Number(recs[k].getAttribute('data-ri'))];
+      if (!r) continue;
+      var t = current();
+      recs[k].classList.toggle('on', !!(t && keyOf(t.title) === keyOf(r.title) && keyOf(t.artist) === keyOf(r.artist)));
+    }
+  }
+
+  /* 音源说明：QQ 音乐 / 网易云只提供歌曲信息，音轨来自其他平台 */
+  function srcHintPaint() {
+    var txt = {
+      qq: 'QQ 音乐：只用来拿准确的歌曲信息（歌名 / 歌手 / 专辑 / 时长）。这些版本基本都要会员，点播时会自动拿这首歌去 B 站、抖音找能免费放的音轨，右上角会显示实际播放来自哪个平台。',
+      netease: '网易云：同样只用歌曲信息，30 秒试听的版本会被跳过，点播时自动去 B 站、抖音找完整音轨。'
+    }[S.src] || '';
+    el.srcHint.hidden = !txt;
+    el.srcHint.textContent = txt;
+  }
+
+  el.searchBtn.addEventListener('click', doSearch);
+  el.srcTabs.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-src]');
+    if (!b) return;
+    var v = b.getAttribute('data-src');
+    if (v === S.src) return;
+    S.src = v;
+    var ts = el.srcTabs.querySelectorAll('.stag');
+    for (var i = 0; i < ts.length; i++) ts[i].classList.toggle('on', ts[i].getAttribute('data-src') === v);
+    srcHintPaint();
+    // 已有结果时切音源 = 立刻用当前关键词重搜
+    if ((el.kw.value || '').trim() && S.results.length) doSearch();
+  });
+  el.kw.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+  });
+  el.topKw.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var v = el.topKw.value.trim();
+    if (!v) { switchView('search'); return; }
+    el.kw.value = v;
+    switchView('search', true);
+    doSearch();
+  });
+
+  function rowSong(e, attr, list) {
+    var row = e.target.closest('.row');
+    if (!row) return null;
+    return list[Number(row.getAttribute(attr))] || null;
+  }
+
+  // 鼠标悬停 / 手指按下就提前解析，点击时往往已经就绪
+  function bindPrefetch(box, attr, getList) {
+    function on(e) {
+      var s = rowSong(e, attr, getList());
+      if (s) prefetchSong(s, true);
+    }
+    box.addEventListener('pointerover', on);
+    box.addEventListener('touchstart', on, { passive: true });
+  }
+
+  el.results.addEventListener('click', function (e) {
+    var row = e.target.closest('.row');
+    if (!row) return;
+    var i = Number(row.getAttribute('data-i'));
+    var s = S.results[i];
+    if (!s) return;
+
+    if (e.target.closest('[data-next]')) {
+      playNextOf(s);   // ⏭+：插到当前歌曲后面，放完这首紧接着放它
+      return;
+    }
+    if (e.target.closest('[data-like]')) {
+      toggleLikeSong(s);
+      refreshRows();
+      return;
+    }
+    if (e.target.closest('[data-add]')) {
+      if (findQueued(s)) { toast('《' + s.title + '》已经在列表里了'); return; }
+      commitAdd(queueSong(s));
+      refreshRows();
+      return;
+    }
+    if (e.target.closest('[data-more]')) {
+      openAct(s, { kind: 'search', index: i });
+      return;
+    }
+    // 点行 / ▶ = 只播这一首（插播），+ 号是加入列表末尾，⏭ 是下一首播放
+    playSingle(s, 'ne');
+  });
+
+  bindPrefetch(el.results, 'data-i', function () { return S.results; });
+
+  /* ---------------- 猜你喜欢 ---------------- */
+  var R = { list: [], loading: false, batch: 0 };
+
+  function recSeen() {
+    var out = [];
+    P.skipped.forEach(function (x) { if (x.title) out.push(x.title); });
+    P.liked.forEach(function (x) { if (x.title) out.push(x.title); });
+    P.plays.forEach(function (x) { if (x.title) out.push(x.title); });
+    return out.slice(-80);
+  }
+
+  function loadRecs() {
+    if (R.loading) return;
+    R.loading = true;
+    el.recNext.disabled = true;
+    el.recList.innerHTML = '<p class="empty">正在按你的口味挑歌…</p>';
+
+    var artists = topArtists(3);
+    var tags = tasteTags(2);
+    var q = '/api/recommend?limit=10&fresh=' + (R.batch++) +
+      '&artists=' + encodeURIComponent(artists.join(',')) +
+      '&tags=' + encodeURIComponent(tags.join(',')) +
+      '&titles=' + encodeURIComponent(recSeen().join('|'));
+
+    apiReady.then(function (st) {
+      if (!st.ok) throw new Error('没连上音乐服务');
+      return fetch(api(q));
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) throw new Error(j.error);
+        R.list = j.songs || [];
+        renderRecs();
+      })
+      .catch(function (e) {
+        el.recList.innerHTML = '<p class="empty">推荐加载失败：' + esc(e.message) + '</p>';
+      })
+      .then(function () {
+        R.loading = false;
+        el.recNext.disabled = false;
+      });
+  }
+
+  function renderRecs() {
+    var artists = topArtists(3);
+    el.recWhy.textContent = artists.length
+      ? '根据你在听：' + artists.join(' / ')
+      : '还没有听歌记录，先给你一批 B 站热播单曲';
+
+    if (!R.list.length) {
+      el.recList.innerHTML = '<p class="empty">这批都处理完啦<br>点「换一批」再挑 10 首</p>';
+      return;
+    }
+
+    var out = '';
+    for (var i = 0; i < R.list.length; i++) {
+      var s = R.list[i];
+      var badge = s.bvid ? srcBadge('bilibili') : srcBadge('netease');
+      out += '<div class="row rec" data-ri="' + i + '">' +
+        '<div class="r-art">' + artHtml(s.cover, s.title) + '</div>' +
+        '<div class="r-info"><div class="r-name">' + esc(s.title) + '</div>' +
+        '<div class="r-sub">' + esc(s.artist || '未知') + badge +
+        (s.why ? '<em> · ' + esc(s.why) + '</em>' : '') + '</div></div>' +
+        '<div class="r-acts">' +
+        '<button data-playnow="' + i + '" aria-label="播放">' + ICON.play + '</button>' +
+        '<button data-like="' + i + '" class="like' + (isLiked(s) ? ' on' : '') + '" aria-label="喜欢">' + ICON.heart + '</button>' +
+        '<button data-skip="' + i + '" aria-label="跳过">' + ICON.skip + '</button>' +
+        '</div></div>';
+    }
+    el.recList.innerHTML = out;
+    prefetchBatch(R.list, 2);
+  }
+
+  function isLiked(item) {
+    var k = keyOf(item.title);
+    for (var i = 0; i < P.liked.length; i++) {
+      if (keyOf(P.liked[i].title) === k && keyOf(P.liked[i].artist) === keyOf(item.artist)) return true;
+    }
+    return false;
+  }
+
+  function dropRec(i) {
+    R.list.splice(i, 1);
+    renderRecs();
+  }
+
+  el.recNext.addEventListener('click', function () { loadRecs(); });
+
+  el.recList.addEventListener('click', function (e) {
+    var row = e.target.closest('.rec');
+    if (!row) return;
+    var i = Number(row.getAttribute('data-ri'));
+    var s = R.list[i];
+    if (!s) return;
+
+    if (e.target.closest('[data-like]')) {
+      var cur = R.list[i];
+      P.liked.push({
+        title: cur.title, artist: cur.artist || '',
+        cover: cur.cover || '', dur: (cur.duration ? cur.duration / 1000 : (cur.dur || 0)),
+        source: cur.source || (cur.bvid ? 'bilibili' : ''),
+        bvid: cur.bvid || '', awemeId: cur.awemeId || '', ts: Date.now()
+      });
+      saveProfile();
+      queueMeta(cur);
+      renderStats();
+      toast('已喜欢并加入列表');
+      dropRec(i);
+      return;
+    }
+    if (e.target.closest('[data-skip]')) {
+      P.skipped.push({ title: s.title, artist: s.artist || '', ts: Date.now() });
+      saveProfile();
+      var t = current();
+      if (t && keyOf(t.title) === keyOf(s.title)) step(1);
+      toast('已跳过');
+      dropRec(i);
+      return;
+    }
+    // 点行/▶ = 这一批都进队列，从这首开始播，放完顺着往下走
+    playFromList(R.list, i, 'meta');
+  });
+
+  bindPrefetch(el.recList, 'data-ri', function () { return R.list; });
+
+  /* ---------------- 我的 ---------------- */
+  function renderStats() {
+    var uniq = {};
+    P.plays.forEach(function (x) { uniq[keyOf(x.title)] = 1; });
+    el.stPlay.textContent = Object.keys(uniq).length;
+    el.stLike.textContent = P.liked.length;
+    el.stQueue.textContent = S.tracks.length;
+  }
+
+  /* ---------------- 我的弹层：最近播放 / 我喜欢 ---------------- */
+  var MINE = { mode: null };   // 'likes' | 'history' | null
+
+  function openMineSheet(mode) {
+    MINE.mode = mode;
+    renderMineSheet();
+    el.mineSheet.classList.add('on');
+    el.mineScrim.classList.add('on');
+  }
+
+  function closeMineSheet() {
+    MINE.mode = null;
+    el.mineSheet.classList.remove('on');
+    el.mineScrim.classList.remove('on');
+  }
+
+  function renderMineSheet() {
+    if (MINE.mode === 'likes') {
+      el.mineTitle.textContent = '我喜欢';
+      el.mineCount.textContent = P.liked.length + ' 首';
+      el.mineClear.hidden = true;
+      el.mineAll.hidden = !P.liked.length;
+      renderLikes();
+    } else if (MINE.mode === 'history') {
+      el.mineTitle.textContent = '最近播放';
+      el.mineClear.hidden = false;
+      el.mineAll.hidden = true;
+      renderHistory();
+    }
+  }
+
+  function renderHistory() {
+    renderStats();
+    if (MINE.mode !== 'history') return;   // 列表收在弹层里，弹层没开就不渲染
+    var seen = {}, out = [], list = P.plays.slice().reverse();
+    for (var i = 0; i < list.length; i++) {
+      var x = list[i];
+      var k = keyOf(x.title) + '|' + keyOf(x.artist);
+      if (seen[k]) continue;
+      seen[k] = 1;
+      out.push(x);
+    }
+    el.mineCount.textContent = out.length + ' 首';
+    if (!out.length) {
+      el.mineList.innerHTML = '<p class="empty">还没有播放记录</p>';
+      return;
+    }
+    var html = '';
+    for (var j = 0; j < out.length; j++) {
+      var it = out[j];
+      var badge = srcBadge(it.source) || '';
+      html += '<div class="row" data-his="' + j + '">' +
+        '<div class="r-art">' + artHtml('', it.title) + '</div>' +
+        '<div class="r-info"><div class="r-name">' + esc(it.title) + '</div>' +
+        '<div class="r-sub">' + esc(it.artist || '未知艺术家') + badge + '</div></div>' +
+        '<div class="r-acts"><button aria-label="再搜一次">' + ICON.play + '</button></div>' +
+        '</div>';
+    }
+    el.mineList.innerHTML = html;
+  }
+
+  /* ---------------- 我喜欢（折叠 + 分页） ---------------- */
+  var LIKES = { open: false, page: 1 };   // open=false 折叠只显 3 条；展开后每页 10 条
+  var LIKE_PAGE = 10;
+
+  function likeRow(it, j) {
+    var badge = srcBadge(it.source) || (it.bvid ? '<i class="src bili">B 站</i>' : '');
+    return '<div class="row" data-li="' + j + '">' +
+      '<div class="r-art">' + artHtml(it.cover, it.title) + '</div>' +
+      '<div class="r-info"><div class="r-name">' + esc(it.title) + '</div>' +
+      '<div class="r-sub">' + esc(it.artist || '未知艺术家') + badge + '</div></div>' +
+      '<span class="r-dur">' + (it.dur ? fmt(it.dur) : '--:--') + '</span>' +
+      '<div class="r-acts">' +
+      '<button data-liplay="' + j + '" aria-label="播放">' + ICON.play + '</button>' +
+      '<button data-unlike="' + j + '" aria-label="取消喜欢">' + ICON.skip + '</button>' +
+      '<button data-limor="' + j + '" aria-label="更多">' + ICON.more + '</button>' +
+      '</div></div>';
+  }
+
+  function renderLikes() {
+    renderStats();
+    if (MINE.mode !== 'likes') return;   // 列表收在弹层里，弹层没开就不渲染
+    var list = P.liked.slice().reverse();   // 最新喜欢的在上面
+    if (!list.length) {
+      el.mineList.innerHTML = '<p class="empty">还没有喜欢的歌<br>在搜索结果、迷你条或播放页点 ♥</p>';
+      return;
+    }
+    var html = '';
+    if (!LIKES.open && list.length > 3) {
+      // 折叠：只显前 3 条 + 展开按钮
+      for (var j = 0; j < 3; j++) html += likeRow(list[j], j);
+      html += '<button class="likes-toggle" data-lexpand="1">展开全部 ' + list.length + ' 首 ▾</button>';
+    } else {
+      // 展开：每页 10 条
+      var pages = Math.ceil(list.length / LIKE_PAGE);
+      if (LIKES.page > pages) LIKES.page = pages;
+      if (LIKES.page < 1) LIKES.page = 1;
+      var start = (LIKES.page - 1) * LIKE_PAGE;
+      var end = Math.min(start + LIKE_PAGE, list.length);
+      for (var k = start; k < end; k++) html += likeRow(list[k], k);
+      html += '<div class="likes-foot">';
+      if (pages > 1) {
+        html += '<button data-lpg="prev"' + (LIKES.page <= 1 ? ' disabled' : '') + '>‹</button>' +
+          '<span>第 ' + LIKES.page + ' / ' + pages + ' 页</span>' +
+          '<button data-lpg="next"' + (LIKES.page >= pages ? ' disabled' : '') + '>›</button>';
+      }
+      if (list.length > 3) html += '<button class="fold" data-lfold="1">收起</button>';
+      html += '</div>';
+    }
+    el.mineList.innerHTML = html;
+  }
+
+  el.mineList.addEventListener('click', function (e) {
+    // —— 我喜欢：分页 / 折叠 / 展开按钮 ——
+    if (e.target.closest('[data-lexpand]')) { LIKES.open = true; renderLikes(); return; }
+    if (e.target.closest('[data-lfold]')) { LIKES.open = false; LIKES.page = 1; renderLikes(); return; }
+    var pg = e.target.closest('[data-lpg]');
+    if (pg) {
+      var pages = Math.ceil(P.liked.length / LIKE_PAGE);
+      if (pg.getAttribute('data-lpg') === 'prev') LIKES.page = Math.max(1, LIKES.page - 1);
+      else LIKES.page = Math.min(pages, LIKES.page + 1);
+      renderLikes();
+      return;
+    }
+    // —— 我喜欢：行操作 ——
+    var li = e.target.closest('[data-li]');
+    if (li) {
+      var i = Number(li.getAttribute('data-li'));
+      var list = P.liked.slice().reverse();
+      var it = list[i];
+      if (!it) return;
+      if (e.target.closest('[data-unlike]')) {
+        P.liked = P.liked.filter(function (x) {
+          return !(keyOf(x.title) === keyOf(it.title) && keyOf(x.artist) === keyOf(it.artist));
+        });
+        saveProfile();
+        renderLikes();
+        refreshRows();
+        toast('已取消喜欢');
+        return;
+      }
+      if (e.target.closest('[data-limor]')) {
+        openAct(it, { kind: 'likes', index: i });
+        return;
+      }
+      // 点行 / ▶ = 整个「我喜欢」入列并从这首开始播
+      playFromList(list, i, 'meta');
+      closeMineSheet();
+      return;
+    }
+    // —— 最近播放：点行 = 跳搜索页搜出来播 ——
+    var row = e.target.closest('[data-his]');
+    if (row) {
+      var out = [];
+      var seen = {};
+      P.plays.slice().reverse().forEach(function (x) {
+        if (!x || !x.title) return;
+        var k2 = keyOf(x.title) + '|' + keyOf(x.artist);
+        if (seen[k2]) return;
+        seen[k2] = 1;
+        out.push(x);
+      });
+      var h = out[Number(row.getAttribute('data-his'))];
+      if (!h) return;
+      closeMineSheet();
+      el.kw.value = [h.title, h.artist].filter(Boolean).join(' ');
+      switchView('search', true);
+      doSearch();
+    }
+  });
+
+  el.mineAll.addEventListener('click', function () {
+    if (MINE.mode !== 'likes') return;
+    if (!P.liked.length) { toast('还没有喜欢的歌'); return; }
+    bulkAdd(P.liked.slice().reverse(), 'meta');
+  });
+
+  el.mineClear.addEventListener('click', function () {
+    if (MINE.mode !== 'history') return;
+    P.plays = [];
+    saveProfile();
+    renderHistory();
+    syncUpload();
+    toast('播放记录已清除');
+  });
+
+  // 统计卡入口：听过 → 最近播放，喜欢 → 我喜欢，列表 → 播放列表
+  document.querySelector('.stats').addEventListener('click', function (e) {
+    var d = e.target.closest('[data-stat]');
+    if (!d) return;
+    var s = d.getAttribute('data-stat');
+    if (s === 'play') openMineSheet('history');
+    else if (s === 'like') openMineSheet('likes');
+    else openSheet();
+  });
+  el.mineScrim.addEventListener('click', closeMineSheet);
+  el.mineSheet.addEventListener('click', function (e) {
+    if (e.target.closest('.sheet-grab')) closeMineSheet();
+  });
+
+  /* ---------------- 键盘 ---------------- */
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (!el.noticeMask.hidden || !el.dyMask.hidden || !el.authMask.hidden || !el.nameMask.hidden) return;   // 弹层打开时不响应快捷键
+    if (e.code === 'Space') { e.preventDefault(); toggle(); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); if (audio.duration) audio.currentTime = Math.min(audio.duration, audio.currentTime + 5); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); if (audio.duration) audio.currentTime = Math.max(0, audio.currentTime - 5); }
+    else if (e.code === 'ArrowUp') { e.preventDefault(); audio.volume = Math.min(1, audio.volume + 0.05); el.vol.value = audio.volume; }
+    else if (e.code === 'ArrowDown') { e.preventDefault(); audio.volume = Math.max(0, audio.volume - 0.05); el.vol.value = audio.volume; }
+    else if (e.code === 'Escape') { closeSheet(); closeNP(); closeMineSheet(); closePlSheet(); closeAct(); closePick(); closeName(); }
+  });
+
+  /* ---------------- 启动 ---------------- */
+  renderHotTags();
+  renderHistoryTags();
+  renderQueue();
+  renderStats();
+  renderLikes();
+  renderMyPl();
+  renderCacheCard();
+  autoCleanCheck();
+  loadHotPl(false);      // 发现页的 QQ 音乐热门歌单
+  updateMeta(null);
+  paintSeek(0);
+  el.vol.dispatchEvent(new Event('input'));
+  bootNotice();
+  bootAuth();
+  bootDy();
+  // 已登录：拉取该账号的云端数据（未登录数据只留本机）
+  if (AUTH.token) syncDownload();
+
+  apiReady.then(function (st) {
+    if (!st.ok) el.banner.hidden = false;
+  });
+  $('#bannerGo').addEventListener('click', function () { location.reload(); });
+
+  // ?q= 直达搜索 / ?view=mine|search 直达对应页
+  try {
+    var params = new URLSearchParams(location.search);
+    var qsv = params.get('q');
+    var vv = params.get('view');
+    if (qsv) {
+      el.kw.value = qsv;
+      el.topKw.value = qsv;
+      switchView('search', true);
+      doSearch();
+    } else if (vv === 'mine' || vv === 'search') {
+      switchView(vv, true);
+    } else {
+      switchView('discover', true);
+    }
+  } catch (e) {
+    switchView('discover', true);
+  }
+})();
+</script>
+</body>
+</html>

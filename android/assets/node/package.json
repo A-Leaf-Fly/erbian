@@ -1,0 +1,16 @@
+{
+  "name": "listen-player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Listen · 在线音乐播放器（B 站音轨 + 本地文件 + 猜你喜欢）",
+  "main": "listen-server.js",
+  "scripts": {
+    "start": "node listen-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "abogus": "^2.1.1"
+  }
+}
