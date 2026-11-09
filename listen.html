@@ -564,8 +564,9 @@
     .np-meta{grid-column:2;grid-row:1;text-align:left;align-self:center;padding-bottom:6px}
     .np-seek{grid-column:2;grid-row:2;align-self:center;margin-top:12px}
     .np-ctrl{grid-column:2;grid-row:3;align-self:center;margin-top:14px;padding-right:2%}
-    /* 歌词模式：歌词占左栏，右侧信息与控件保持不动 */
-    .np.lyric-mode .ly{grid-column:1;grid-row:1/4;padding-right:6px}
+    /* 歌词模式：歌词占左栏全高，右侧信息与控件三等分垂直分布 */
+    .np.lyric-mode .np-main{grid-template-rows:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);overflow:hidden}
+    .np.lyric-mode .ly{grid-column:1;grid-row:1/4;align-self:stretch;height:100%;min-height:0;padding-right:6px}
     .np.lyric-mode .disc-wrap{display:none}
   }
   @media (orientation:landscape) and (min-width:900px){
@@ -966,8 +967,8 @@
       <p class="dy-note top" id="dyNote">抖音登录态只属于<span id="dyNoteWho">本机设备</span>，别人打开这个网站看不到、也用不了你的抖音账号。</p>
       <button class="btn-ghost" id="dyClaim" hidden style="width:100%;margin:0 0 12px">把这台设备已登录的抖音绑到当前账号</button>
       <div class="dy-step">
-        <b>方式一：扫码登录（推荐）</b>
-        <p>点下面的按钮，会用本机浏览器打开抖音网页版。你在窗口里扫码登录后回到这里，程序自动读取会话——<b>不接触你的账号密码</b>。</p>
+        <b>方式一：应用内登录（推荐）</b>
+        <p>点下面的按钮会在<b>应用内</b>打开抖音登录页——手机上用「手机号 + 验证码」最方便。登录成功后<b>自动检测并绑定</b>，不用复制粘贴，<b>不接触你的账号密码</b>。</p>
         <button class="btn" id="dyScan">打开抖音登录窗口</button>
         <p class="dy-state" id="dyScanState"></p>
       </div>

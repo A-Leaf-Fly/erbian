@@ -333,8 +333,8 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFFFFFFFF);
 
-        TextView head = new TextView(this);
-        head.setText("登录抖音（登录完回到这里点下面按钮）");
+        final TextView head = new TextView(this);
+        head.setText("登录抖音 · 成功后自动绑定，无需手动确认\n用手机号验证码登录最方便；窗口里也可以扫码");
         head.setTextSize(13f);
         head.setTextColor(0xFF53586A);
         head.setPadding(dp(16), dp(14), dp(16), dp(10));
@@ -356,7 +356,7 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         final Button done = new Button(this);
-        done.setText("我已登录完成");
+        done.setText("我已登录完成（也可以等自动检测）");
         done.setAllCaps(false);
         done.setTextColor(Color.WHITE);
         GradientDrawable bg = new GradientDrawable();
@@ -368,20 +368,25 @@ public class MainActivity extends Activity {
         blp.setMargins(dp(14), dp(10), dp(14), dp(14));
         root.addView(done, blp);
 
-        done.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
+        /* 登录成功的绑定动作：自动检测和手动按钮共用 */
+        final java.util.concurrent.atomic.AtomicBoolean bound =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
+        final Runnable[] bindNow = new Runnable[1];
+
+        bindNow[0] = new Runnable() {
+            public void run() {
+                if (!bound.compareAndSet(false, true)) return;
                 String cookie = "";
                 try {
                     cookie = CookieManager.getInstance().getCookie("https://www.douyin.com");
                 } catch (Throwable ignored) {
                 }
                 if (cookie == null || !cookie.toLowerCase(Locale.ROOT).contains("sessionid")) {
-                    Toast.makeText(MainActivity.this, "还没检测到登录状态，请先在页面里登录",
-                            Toast.LENGTH_SHORT).show();
+                    bound.set(false);
                     return;
                 }
                 done.setEnabled(false);
-                done.setText("正在绑定…");
+                done.setText("检测到登录，正在绑定…");
                 final String payload = cookie;
                 new Thread(new Runnable() {
                     public void run() {
@@ -390,13 +395,14 @@ public class MainActivity extends Activity {
                             public void run() {
                                 if (err == null) {
                                     dlg.dismiss();
-                                    Toast.makeText(MainActivity.this, "抖音已绑定到本机",
+                                    Toast.makeText(MainActivity.this, "抖音登录成功，已自动绑定",
                                             Toast.LENGTH_SHORT).show();
                                     web.evaluateJavascript(
                                             "window.__onDyLogin&&window.__onDyLogin(true,'')", null);
                                 } else {
+                                    bound.set(false);
                                     done.setEnabled(true);
-                                    done.setText("我已登录完成");
+                                    done.setText("绑定失败，点此重试");
                                     Toast.makeText(MainActivity.this, err, Toast.LENGTH_LONG).show();
                                 }
                             }
@@ -404,7 +410,33 @@ public class MainActivity extends Activity {
                     }
                 }).start();
             }
+        };
+
+        done.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                bindNow[0].run();
+            }
         });
+
+        /* 自动检测：窗口开着时每 1.5s 看一眼 Cookie，出现 sessionid 就自动绑定 */
+        final android.os.Handler poller = new android.os.Handler();
+        final Runnable[] poll = new Runnable[1];
+        poll[0] = new Runnable() {
+            public void run() {
+                if (!dlg.isShowing() || bound.get()) return;
+                String ck = "";
+                try {
+                    ck = CookieManager.getInstance().getCookie("https://www.douyin.com");
+                } catch (Throwable ignored) {
+                }
+                if (ck != null && ck.toLowerCase(Locale.ROOT).contains("sessionid")) {
+                    head.setText("检测到登录成功，正在自动绑定…");
+                    bindNow[0].run();
+                    return;
+                }
+                poller.postDelayed(poll[0], 1500);
+            }
+        };
 
         dlg.setContentView(root);
         Window w = dlg.getWindow();
@@ -413,6 +445,7 @@ public class MainActivity extends Activity {
         }
         dlg.setOnDismissListener(new DialogInterface.OnDismissListener() {
             public void onDismiss(DialogInterface d) {
+                poller.removeCallbacksAndMessages(null);
                 try {
                     dv.destroy();
                 } catch (Throwable ignored) {
@@ -420,6 +453,7 @@ public class MainActivity extends Activity {
             }
         });
         dlg.show();
+        poller.postDelayed(poll[0], 1500);
     }
 
     /** 把 WebView 里的抖音 Cookie 交给本地服务；成功返回 null，失败返回原因 */
