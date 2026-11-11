@@ -334,7 +334,7 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(0xFFFFFFFF);
 
         final TextView head = new TextView(this);
-        head.setText("登录抖音 · 打开后会自动弹出登录框\n手机号验证码登录最方便，也可以用抖音 App 扫码");
+        head.setText("登录抖音 · 自动切到「验证码登录」\n只用一个手机：填手机号 → 收短信 → 登录，不用第二台设备扫码");
         head.setTextSize(13f);
         head.setTextColor(0xFF53586A);
         head.setPadding(dp(16), dp(14), dp(16), dp(10));
@@ -358,26 +358,43 @@ public class MainActivity extends Activity {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(dv, true);
 
-        /* 自动弹登录面板（参考 MediaCrawler.popup_login_dialog）：
-         * 页面加载完后最多 15 秒内每秒看一眼——
-         * 有 #login-panel-new 说明面板已出，直接收工；
-         * 没有就自动点页面上文字恰为「登录」的按钮，把面板弹出来。 */
+        /* 自动弹登录面板 + 自动切「验证码登录」（参考 MediaCrawler.popup_login_dialog）：
+         * 1) 面板没出 → 点页面上文字恰为「登录」的按钮把面板弹出来；
+         * 2) 面板已出 → 自动切到「验证码登录」标签页：
+         *    手机号 + 短信验证码就能登，一个手机搞定，不用第二台设备扫码。
+         * 只在页面里执行一次（window.__ebSms 标记），不会打断用户输号码。 */
         final android.os.Handler pop = new android.os.Handler();
         final int[] tries = {0};
         final Runnable[] popTask = new Runnable[1];
         popTask[0] = new Runnable() {
             public void run() {
-                if (!dlg.isShowing() || bound.get() || tries[0] >= 15) return;
+                if (!dlg.isShowing() || bound.get() || tries[0] >= 20) return;
                 tries[0]++;
                 dv.evaluateJavascript(
-                        "(function(){try{if(document.querySelector('#login-panel-new'))return 'open';"
+                        "(function(){try{"
+                                + "if(window.__ebDone)return 'done';"
+                                + "function vis(e){return e&&e.offsetWidth>0&&e.offsetHeight>0;}"
+                                + "var phone=document.querySelector('input[placeholder*=\"\\u624b\\u673a\\u53f7\"]');"
+                                + "var panel=document.querySelector('#login-panel-new');"
+                                + "var nodes=document.querySelectorAll('li,div,span,p,a');"
+                                + "var sms=null,qr=null;"
+                                + "for(var i=0;i<nodes.length;i++){"
+                                + "if(!vis(nodes[i]))continue;"
+                                + "var t=(nodes[i].textContent||'').replace(/\\s+/g,'');"
+                                + "if(!sms&&(t==='\\u9a8c\\u8bc1\\u7801\\u767b\\u5f55'||t==='\\u9a8c\\u8bc1\\u7801\\u767b\\u5f55/\\u6ce8\\u518c'))sms=nodes[i];"
+                                + "if(!qr&&t==='\\u626b\\u7801\\u767b\\u5f55')qr=nodes[i];}"
+                                + "if(panel||phone||qr){"
+                                + "if(phone){window.__ebSms=1;window.__ebDone=1;return 'done';}"
+                                + "if(sms&&!window.__ebSms){sms.click();window.__ebSms=1;return 'sms';}"
+                                + "if(window.__ebSms){window.__ebDone=1;return 'done';}"
+                                + "return 'open';}"
                                 + "var ps=document.querySelectorAll('p');"
-                                + "for(var i=0;i<ps.length;i++){"
-                                + "if((ps[i].textContent||'').trim()==='\u767b\u5f55'&&ps[i].offsetWidth>0)"
-                                + "{ps[i].click();return 'clicked';}}}catch(e){}return 'none';})()",
+                                + "for(var k=0;k<ps.length;k++){"
+                                + "if((ps[k].textContent||'').trim()==='\u767b\u5f55'&&vis(ps[k])){ps[k].click();return 'clicked';}}"
+                                + "}catch(e){return 'err';}return 'none';})()",
                         new ValueCallback<String>() {
                             public void onReceiveValue(String r) {
-                                if (r != null && (r.contains("open") || r.contains("clicked"))) return;
+                                if (r != null && r.contains("done")) return;
                                 pop.postDelayed(popTask[0], 1000);
                             }
                         });
