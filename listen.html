@@ -609,6 +609,7 @@
       <div>
         <h1>猜你喜欢</h1>
         <p id="recWhy">按你的听歌口味，每批 10 首</p>
+        <p class="muted" style="margin:2px 0 0;font-size:12px;opacity:.8">▶ 播放整批 · ♡ 收进我喜欢 · ✕ 不感兴趣（不会再推这首，不是切歌）</p>
       </div>
       <button class="btn-ghost" id="recNext">换一批</button>
     </div>
@@ -4499,7 +4500,7 @@
   bindPrefetch(el.results, 'data-i', function () { return S.results; });
 
   /* ---------------- 猜你喜欢 ---------------- */
-  var R = { list: [], loading: false, batch: 0 };
+  var R = { list: [], loading: false, batch: 0, exhausted: false };
 
   function recSeen() {
     var out = [];
@@ -4512,6 +4513,7 @@
   function loadRecs() {
     if (R.loading) return;
     R.loading = true;
+    R.exhausted = false;
     el.recNext.disabled = true;
     el.recList.innerHTML = '<p class="empty">正在按你的口味挑歌…</p>';
 
@@ -4530,6 +4532,7 @@
       .then(function (j) {
         if (j.error) throw new Error(j.error);
         R.list = j.songs || [];
+        R.exhausted = !R.list.length;
         renderRecs();
       })
       .catch(function (e) {
@@ -4548,7 +4551,12 @@
       : '还没有听歌记录，先给你一批 B 站热播单曲';
 
     if (!R.list.length) {
-      el.recList.innerHTML = '<p class="empty">这批都处理完啦<br>点「换一批」再挑 10 首</p>';
+      if (R.exhausted) {
+        el.recList.innerHTML = '<p class="empty">暂时没有新的推荐了<br>听几首再回来，口味会更准</p>';
+        return;
+      }
+      el.recList.innerHTML = '<p class="empty">这批都处理完啦，正在自动换一批…</p>';
+      loadRecs();
       return;
     }
 
@@ -4564,7 +4572,7 @@
         '<div class="r-acts">' +
         '<button data-playnow="' + i + '" aria-label="播放">' + ICON.play + '</button>' +
         '<button data-like="' + i + '" class="like' + (isLiked(s) ? ' on' : '') + '" aria-label="喜欢">' + ICON.heart + '</button>' +
-        '<button data-skip="' + i + '" aria-label="跳过">' + ICON.skip + '</button>' +
+        '<button data-skip="' + i + '" aria-label="不感兴趣">' + ICON.skip + '</button>' +
         '</div></div>';
     }
     el.recList.innerHTML = out;
@@ -4613,7 +4621,7 @@
       saveProfile();
       var t = current();
       if (t && keyOf(t.title) === keyOf(s.title)) step(1);
-      toast('已跳过');
+      toast('不感兴趣，之后少推这类');
       dropRec(i);
       return;
     }
