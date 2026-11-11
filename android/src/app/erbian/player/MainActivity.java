@@ -334,13 +334,16 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(0xFFFFFFFF);
 
         final TextView head = new TextView(this);
-        head.setText("登录抖音 · 成功后自动绑定，无需手动确认\n用手机号验证码登录最方便；窗口里也可以扫码");
+        head.setText("登录抖音 · 打开后会自动弹出登录框\n手机号验证码登录最方便，也可以用抖音 App 扫码");
         head.setTextSize(13f);
         head.setTextColor(0xFF53586A);
         head.setPadding(dp(16), dp(14), dp(16), dp(10));
         root.addView(head);
 
         final WebView dv = new WebView(this);
+        /* 登录成功的绑定标记：自动弹面板、自动检测和手动按钮共用 */
+        final java.util.concurrent.atomic.AtomicBoolean bound =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
         WebSettings ds = dv.getSettings();
         ds.setJavaScriptEnabled(true);
         ds.setDomStorageEnabled(true);
@@ -349,8 +352,43 @@ public class MainActivity extends Activity {
         ds.setUseWideViewPort(true);
         ds.setMediaPlaybackRequiresUserGesture(false);
         ds.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        /* 桌面 UA：抖音给手机 WebView UA 会推营销页，桌面 UA 才会出标准登录面板 */
+        ds.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(dv, true);
+
+        /* 自动弹登录面板（参考 MediaCrawler.popup_login_dialog）：
+         * 页面加载完后最多 15 秒内每秒看一眼——
+         * 有 #login-panel-new 说明面板已出，直接收工；
+         * 没有就自动点页面上文字恰为「登录」的按钮，把面板弹出来。 */
+        final android.os.Handler pop = new android.os.Handler();
+        final int[] tries = {0};
+        final Runnable[] popTask = new Runnable[1];
+        popTask[0] = new Runnable() {
+            public void run() {
+                if (!dlg.isShowing() || bound.get() || tries[0] >= 15) return;
+                tries[0]++;
+                dv.evaluateJavascript(
+                        "(function(){try{if(document.querySelector('#login-panel-new'))return 'open';"
+                                + "var ps=document.querySelectorAll('p');"
+                                + "for(var i=0;i<ps.length;i++){"
+                                + "if((ps[i].textContent||'').trim()==='\u767b\u5f55'&&ps[i].offsetWidth>0)"
+                                + "{ps[i].click();return 'clicked';}}}catch(e){}return 'none';})()",
+                        new ValueCallback<String>() {
+                            public void onReceiveValue(String r) {
+                                if (r != null && (r.contains("open") || r.contains("clicked"))) return;
+                                pop.postDelayed(popTask[0], 1000);
+                            }
+                        });
+            }
+        };
+        dv.setWebViewClient(new WebViewClient() {
+            public void onPageFinished(WebView v, String url) {
+                tries[0] = 0;
+                pop.postDelayed(popTask[0], 800);
+            }
+        });
         dv.loadUrl("https://www.douyin.com/");
         root.addView(dv, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -369,8 +407,6 @@ public class MainActivity extends Activity {
         root.addView(done, blp);
 
         /* 登录成功的绑定动作：自动检测和手动按钮共用 */
-        final java.util.concurrent.atomic.AtomicBoolean bound =
-                new java.util.concurrent.atomic.AtomicBoolean(false);
         final Runnable[] bindNow = new Runnable[1];
 
         bindNow[0] = new Runnable() {
@@ -446,6 +482,7 @@ public class MainActivity extends Activity {
         dlg.setOnDismissListener(new DialogInterface.OnDismissListener() {
             public void onDismiss(DialogInterface d) {
                 poller.removeCallbacksAndMessages(null);
+                pop.removeCallbacksAndMessages(null);
                 try {
                     dv.destroy();
                 } catch (Throwable ignored) {
