@@ -611,14 +611,21 @@
         <p id="recWhy">按你的听歌口味，每批 10 首</p>
         <p class="muted" style="margin:2px 0 0;font-size:12px;opacity:.8">▶ 播放整批 · ♡ 收进我喜欢 · ✕ 不感兴趣（不会再推这首，不是切歌）</p>
       </div>
+      <button class="btn-ghost" id="recAuto">▶ 刷歌</button>
       <button class="btn-ghost" id="recNext">换一批</button>
     </div>
     <div class="rows" id="recList"><p class="empty">正在按你的口味挑歌…</p></div>
 
     <div class="pl-head">
-      <h3>QQ 音乐热门歌单</h3>
+      <h3>QQ 音乐歌单</h3>
       <span class="sub" id="hotPlSub">实时读取</span>
       <button class="btn-ghost" id="plRefresh">换一批</button>
+    </div>
+    <div style="display:flex;gap:8px;margin:0 0 12px">
+      <input id="plSearchKw" type="search" placeholder="搜 QQ 歌单：歌手 / 风格 / 心情"
+        style="flex:1;min-width:0;padding:10px 14px;border:1px solid #d9dce3;border-radius:12px;font-size:14px;background:#fff" />
+      <button class="btn-ghost" id="plSearchBtn">搜索</button>
+      <button class="btn-ghost" id="plBackHot" hidden>回热门</button>
     </div>
     <div class="pl-grid" id="hotPl"><p class="empty">正在从 QQ 音乐读取热门歌单…</p></div>
   </section>
@@ -1194,6 +1201,8 @@
     authGo: $('#authGo'), authClose: $('#authClose'), authSub: $('#authSub'),
     // 歌单
     hotPl: $('#hotPl'), hotPlSub: $('#hotPlSub'), plRefresh: $('#plRefresh'),
+    plSearchKw: $('#plSearchKw'), plSearchBtn: $('#plSearchBtn'), plBackHot: $('#plBackHot'),
+    recAuto: $('#recAuto'),
     myPl: $('#myPl'), myPlTip: $('#myPlTip'), plNew: $('#plNew'), qSave: $('#qSave'),
     plSheet: $('#plSheet'), plScrim: $('#plScrim'), plHero: $('#plHero'), plOps: $('#plOps'), plSongs: $('#plSongs'),
     actSheet: $('#actSheet'), actScrim: $('#actScrim'), actSong: $('#actSong'), actList: $('#actList'),
@@ -2079,6 +2088,7 @@
     if (!t) return Promise.resolve();
     var seq = ++playSeq;
     S.cur = id;
+    if (AUTO.on) autoTick();
     updateMeta(t);
     renderQueue();
     refreshRows();
@@ -2244,7 +2254,8 @@
         artist: (t && t.artist) || '',
         dur: audio.duration || (t && t.dur) || 0,
         pos: audio.currentTime || 0,
-        cover: (t && t.cover) || ''
+        cover: (t && t.cover) || '',
+        liked: t ? isLiked(t) : false
       }));
     } catch (e) {}
   }
@@ -2255,6 +2266,20 @@
       else if (cmd === 'play') { if (audio.paused) toggle(); }
       else if (cmd === 'next') step(1);
       else if (cmd === 'prev') step(-1);
+      else if (cmd === 'like') {
+        var t = current();
+        if (t) {
+          var on = toggleLikeSong(t);
+          if (on) queueMeta(t);
+          refreshRows();
+          renderQueue();
+          pushMedia(true);
+        }
+      }
+      else if (cmd === 'lyrics') {
+        if (!el.np.classList.contains('on')) openNP();
+        lyToggle(true);
+      }
       else if (cmd && cmd.indexOf('seek:') === 0) {
         var sec = parseFloat(cmd.slice(5));
         if (isFinite(sec)) { try { audio.currentTime = sec; } catch (e) {} }
@@ -2340,6 +2365,7 @@
     lastAdvance = now;
     var t = current();
     if (t) t._endWait = false;
+    if (AUTO.on) { autoAdvance(); return; }   // 刷歌优先：不受单曲循环卡住
     if (S.mode === 1) {
       audio.currentTime = 0;
       var p = audio.play();
@@ -3322,7 +3348,80 @@
   }
 
   /* ---- QQ 音乐热门歌单：每次打开发现页都去读一遍 ---- */
+  var PLSEARCH = { on: false, kw: '', page: 1, loading: false };
+
+  function plSearchGo() {
+    var kw = (el.plSearchKw.value || '').trim();
+    if (!kw || PLSEARCH.loading) return;
+    PLSEARCH.on = true;
+    PLSEARCH.kw = kw;
+    PLSEARCH.page = 1;
+    PLSEARCH.loading = true;
+    el.plBackHot.hidden = false;
+    el.plRefresh.disabled = true;
+    el.hotPl.innerHTML = '<p class="empty">正在搜「' + esc(kw) + '」的 QQ 歌单…</p>';
+    apiReady.then(function () {
+      return fetch(api('/api/qq/playlist/search?kw=' + encodeURIComponent(kw) + '&page=1&limit=18'));
+    }).then(function (r) { return r.json(); })
+      .then(function (j) {
+        var list = (j && j.playlists) || [];
+        if (!list.length) {
+          el.hotPl.innerHTML = '<p class="empty">没搜到「' + esc(kw) + '」的歌单' +
+            (j && j.error ? '<br>' + esc(j.error) : '') + '</p>';
+          return;
+        }
+        HOTPL.list = list;
+        HOTPL.ts = Date.now();
+        renderHotPl();
+        el.hotPlSub.textContent = '搜索「' + kw + '」· ' + list.length + ' 个';
+      }).catch(function () {
+        el.hotPl.innerHTML = '<p class="empty">搜索失败，稍后再试</p>';
+      }).then(function () {
+        PLSEARCH.loading = false;
+        el.plRefresh.disabled = false;
+      });
+  }
+
+  function plSearchMore() {
+    if (!PLSEARCH.on || PLSEARCH.loading) return;
+    PLSEARCH.loading = true;
+    el.plRefresh.disabled = true;
+    var page = PLSEARCH.page + 1;
+    apiReady.then(function () {
+      return fetch(api('/api/qq/playlist/search?kw=' + encodeURIComponent(PLSEARCH.kw) + '&page=' + page + '&limit=18'));
+    }).then(function (r) { return r.json(); })
+      .then(function (j) {
+        var list = (j && j.playlists) || [];
+        if (list.length) {
+          PLSEARCH.page = page;
+          HOTPL.list = HOTPL.list.concat(list);
+          HOTPL.ts = Date.now();
+          renderHotPl();
+          el.hotPlSub.textContent = '搜索「' + PLSEARCH.kw + '」· ' + HOTPL.list.length + ' 个';
+        } else {
+          toast('后面没有更多了');
+        }
+      }).catch(function () { toast('读取失败，稍后再试'); })
+      .then(function () {
+        PLSEARCH.loading = false;
+        el.plRefresh.disabled = false;
+      });
+  }
+
+  function plBackHot() {
+    PLSEARCH.on = false;
+    el.plBackHot.hidden = true;
+    el.plSearchKw.value = '';
+    HOTPL.list = [];
+    loadHotPl(true);
+  }
+
+  el.plSearchBtn.addEventListener('click', plSearchGo);
+  el.plSearchKw.addEventListener('keydown', function (e) { if (e.key === 'Enter') plSearchGo(); });
+  el.plBackHot.addEventListener('click', plBackHot);
+
   function loadHotPl(force) {
+    if (PLSEARCH.on) return;          // 正在看搜索结果：别用热门榜覆盖
     if (HOTPL.loading) return;
     if (!force && HOTPL.list.length && Date.now() - HOTPL.ts < 60 * 1000) return;
     HOTPL.loading = true;
@@ -3569,6 +3668,7 @@
 
   /* ---- 入口绑定 ---- */
   el.plRefresh.addEventListener('click', function () {
+    if (PLSEARCH.on) { plSearchMore(); return; }
     HOTPL.page = (HOTPL.page + 1) % 8;   // 每次换一批：往后翻一页热门榜
     loadHotPl(true);
   });
@@ -4501,6 +4601,144 @@
 
   /* ---------------- 猜你喜欢 ---------------- */
   var R = { list: [], loading: false, batch: 0, exhausted: false };
+
+  /* ---------------- 刷歌模式：滚动批次连播 ----------------
+   * 队列里永远只有「当前批 + 已备好的下一批」：
+   * 播完 1-2 首就开始拉/预热下一批（不进队列，只备元数据 + 预热首段缓冲）；
+   * 剩 ≤2 首时下一批才追加进队列；上一批的歌播完即从队列清掉。
+   * 好处：队列短、内存占用小、服务端只缓存当前+下一首的音频段。 */
+  var AUTO = { on: false, batch: 1, next: null, prepping: false, fails: 0 };
+
+  function autoTag(list) {
+    (list || []).forEach(function (s) {
+      var t = findQueued(s);
+      if (t) t.adBatch = AUTO.batch;
+    });
+  }
+
+  function autoTrim() {
+    var removed = false;
+    for (var i = S.tracks.length - 1; i >= 0; i--) {
+      var t = S.tracks[i];
+      if (t && t.adBatch && t.adBatch < AUTO.batch && t.id !== S.cur) {
+        t.url = null; t.urlTs = 0;    // 顺手丢掉已解析的音轨地址
+        S.tracks.splice(i, 1);
+        removed = true;
+      }
+    }
+    if (removed) renderQueue();
+  }
+
+  function autoPrepare() {
+    if (AUTO.prepping || AUTO.next) return;
+    AUTO.prepping = true;
+    var artists = topArtists(3);
+    var tags = tasteTags(2);
+    // 把当前批里还没放完的也算「看过」，下一批绝不重复
+    var seen = recSeen().concat(S.tracks.filter(function (t) { return t.adBatch === AUTO.batch; })
+      .map(function (t) { return t.title; }));
+    var q = '/api/recommend?limit=10&fresh=' + (R.batch++) +
+      '&artists=' + encodeURIComponent(artists.join(',')) +
+      '&tags=' + encodeURIComponent(tags.join(',')) +
+      '&titles=' + encodeURIComponent(seen.join('|'));
+    apiReady.then(function (st) {
+      if (!st.ok) throw new Error('没连上音乐服务');
+      return fetch(api(q));
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        AUTO.next = (j && j.songs) || [];
+        AUTO.prepping = false;
+        AUTO.fails = 0;
+        if (AUTO.next.length) prefetchBatch(AUTO.next, 2);   // 下一批前两首提前热身
+      })
+      .catch(function () {
+        AUTO.next = null;
+        AUTO.prepping = false;
+        AUTO.fails++;
+      });
+  }
+
+  function autoAppend() {
+    var list = AUTO.next || [];
+    AUTO.next = null;
+    if (!list.length) return;
+    for (var i = 0; i < list.length; i++) {
+      var t = findQueued(list[i]) || queueMeta(list[i], true);
+      if (t) t.adBatch = AUTO.batch + 1;
+    }
+    AUTO.batch++;
+    renderQueue();
+    renderStats();
+  }
+
+  function autoTick() {
+    if (!AUTO.on) return;
+    autoTrim();
+    var i = indexOf(S.cur);
+    if (i < 0) return;
+    var left = 0, played = 0;
+    for (var k = 0; k < S.tracks.length; k++) {
+      var t = S.tracks[k];
+      if (!t.adBatch || t.adBatch !== AUTO.batch) continue;
+      if (k < i) played++;
+      else if (k > i) left++;
+    }
+    // 播过 2 首就开始备下一批（用户要求：播完前一两首提前准备）
+    if (played >= 2) autoPrepare();
+    // 剩 1-2 首且下一批已就绪：追加进队列
+    if (left <= 2 && AUTO.next && AUTO.next.length) autoAppend();
+    else if (left <= 2 && !AUTO.next && !AUTO.prepping) autoPrepare();
+  }
+
+  function autoAdvance() {
+    if (!AUTO.on) { step(1); return; }
+    autoTick();
+    var i = indexOf(S.cur);
+    var nxt = i >= 0 ? S.tracks[i + 1] : (S.tracks[0] || null);
+    if (nxt && nxt.id !== S.cur) { playTrack(nxt.id, true); return; }
+    if (AUTO.prepping || (AUTO.next && AUTO.next.length)) {
+      setTimeout(autoAdvance, 900);   // 下一批还在路上，稍等再推
+      return;
+    }
+    if (AUTO.fails >= 8) {
+      autoStop();
+      toast('连续拉不到新推荐，刷歌已停');
+      return;
+    }
+    autoPrepare();
+    setTimeout(autoAdvance, 1500);
+  }
+
+  function autoStart() {
+    AUTO.on = true;
+    el.recAuto.textContent = '⏸ 刷歌中';
+    el.recAuto.classList.add('on');
+    if (!current()) {
+      if (R.list.length) {
+        playFromList(R.list, 0, 'meta');
+        autoTag(R.list);
+        autoTick();
+      } else {
+        loadRecs();
+        toast('先挑一批歌，马上开始连播');
+      }
+    } else {
+      for (var i = 0; i < S.tracks.length; i++) if (!S.tracks[i].adBatch) S.tracks[i].adBatch = AUTO.batch;
+      autoTick();
+    }
+    toast('刷歌模式：按猜你喜欢连播，播完自动换下一批');
+  }
+
+  function autoStop() {
+    AUTO.on = false;
+    AUTO.next = null;
+    AUTO.prepping = false;
+    el.recAuto.textContent = '▶ 刷歌';
+    el.recAuto.classList.remove('on');
+  }
+
+  el.recAuto.addEventListener('click', function () { AUTO.on ? autoStop() : autoStart(); });
 
   function recSeen() {
     var out = [];

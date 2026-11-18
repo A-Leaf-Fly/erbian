@@ -35,6 +35,8 @@ public class MediaService extends Service {
     static final String ACT_TOGGLE = "app.erbian.MEDIA_TOGGLE";
     static final String ACT_NEXT = "app.erbian.MEDIA_NEXT";
     static final String ACT_PREV = "app.erbian.MEDIA_PREV";
+    static final String ACT_LIKE = "app.erbian.MEDIA_LIKE";
+    static final String ACT_LYRICS = "app.erbian.MEDIA_LYRICS";
     static final String ACT_CLOSE = "app.erbian.MEDIA_CLOSE";
 
     private MediaSession session;
@@ -42,6 +44,7 @@ public class MediaService extends Service {
     private PowerManager.WakeLock wake;
 
     private boolean playing;
+    private boolean liked;
     private String title = "", artist = "", cover = "";
     private long durMs, posMs;
     private Bitmap coverBm;
@@ -98,6 +101,8 @@ public class MediaService extends Service {
             if (ACT_TOGGLE.equals(a)) MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('toggle')");
             else if (ACT_NEXT.equals(a)) MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('next')");
             else if (ACT_PREV.equals(a)) MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('prev')");
+            else if (ACT_LIKE.equals(a)) MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('like')");
+            else if (ACT_LYRICS.equals(a)) MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('lyrics')");
             else if (ACT_CLOSE.equals(a)) {
                 MainActivity.execJs("window.__mediaCtl&&window.__mediaCtl('pause')");
                 stopForeground(true);
@@ -221,13 +226,19 @@ public class MediaService extends Service {
                 .setContentTitle(title.isEmpty() ? "耳边 · 未在播放" : title)
                 .setContentText(artist.isEmpty() ? "选一首歌开始吧" : artist)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .addAction(new Notification.Action.Builder(
+                        android.graphics.drawable.Icon.createWithBitmap(iconHeart(liked)),
+                        liked ? "已喜欢" : "喜欢", ctl(ACT_LIKE)).build())
                 .addAction(new Notification.Action(android.R.drawable.ic_media_previous,
                         "上一首", ctl(ACT_PREV)))
                 .addAction(new Notification.Action(
                         playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
                         playing ? "暂停" : "播放", ctl(ACT_TOGGLE)))
                 .addAction(new Notification.Action(android.R.drawable.ic_media_next,
-                        "下一首", ctl(ACT_NEXT)));
+                        "下一首", ctl(ACT_NEXT)))
+                .addAction(new Notification.Action.Builder(
+                        android.graphics.drawable.Icon.createWithBitmap(iconWord()),
+                        "歌词", ctl(ACT_LYRICS)).build());
 
         Bitmap bm = currentCover();
         if (bm != null) b.setLargeIcon(bm);
@@ -235,10 +246,44 @@ public class MediaService extends Service {
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             Notification.MediaStyle st = new Notification.MediaStyle();
             st.setMediaSession(session.getSessionToken());
-            st.setShowActionsInCompactView(0, 1, 2);
+            // 展开时 5 个键都在；紧凑视图优先保证 喜欢 / 播放 / 歌词 可见
+            st.setShowActionsInCompactView(0, 2, 4);
             b.setStyle(st);
         }
         return b.build();
+    }
+
+    /** 心形图标：liked=实心，否则描边（白色，透明底） */
+    private Bitmap iconHeart(boolean filled) {
+        int s = 96;
+        Bitmap bm = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas cv = new android.graphics.Canvas(bm);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setColor(0xFFFFFFFF);
+        p.setStyle(filled ? android.graphics.Paint.Style.FILL : android.graphics.Paint.Style.STROKE);
+        p.setStrokeWidth(filled ? 0 : 8f);
+        android.graphics.Path h = new android.graphics.Path();
+        h.moveTo(s * 0.50f, s * 0.84f);
+        h.cubicTo(s * 0.02f, s * 0.54f, s * 0.16f, s * 0.10f, s * 0.50f, s * 0.30f);
+        h.cubicTo(s * 0.84f, s * 0.10f, s * 0.98f, s * 0.54f, s * 0.50f, s * 0.84f);
+        h.close();
+        cv.drawPath(h, p);
+        return bm;
+    }
+
+    /** 「词」字图标（白色，透明底） */
+    private Bitmap iconWord() {
+        int s = 96;
+        Bitmap bm = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas cv = new android.graphics.Canvas(bm);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        p.setColor(0xFFFFFFFF);
+        p.setTextSize(s * 0.54f);
+        p.setTextAlign(android.graphics.Paint.Align.CENTER);
+        p.setFakeBoldText(true);
+        float y = s / 2f - ((p.descent() + p.ascent()) / 2f);
+        cv.drawText("词", s / 2f, y, p);
+        return bm;
     }
 
     private void refreshNotification() {
@@ -315,6 +360,7 @@ public class MediaService extends Service {
             title = o.optString("title", "");
             artist = o.optString("artist", "");
             cover = o.optString("cover", "");
+            liked = o.optBoolean("liked", false);
             durMs = (long) (o.optDouble("dur", 0) * 1000);
             posMs = (long) (o.optDouble("pos", 0) * 1000);
         } catch (Throwable ignored) {

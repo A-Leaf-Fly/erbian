@@ -350,6 +350,54 @@ async function qqHotPlaylists(limit, page) {
   return data;
 }
 
+/** QQ 歌单关键词搜索：musicu.fcg 桌面搜索，search_type=3 是歌单 */
+async function qqPlaylistSearch(kw, page, limit) {
+  kw = String(kw || '').trim();
+  if (!kw) return { total: 0, playlists: [], kw: kw };
+  limit = Math.min(24, Math.max(4, Number(limit) || 12));
+  page = Math.max(1, Number(page) || 1);
+  const key = 'plsearch|' + kw + '|' + page + '|' + limit;
+  const hit = qqPlCache.get(key);
+  if (hit && Date.now() - hit.ts < 10 * 60 * 1000) return hit.data;
+
+  const body = JSON.stringify({
+    comm: { ct: 19, cv: 1859, ugc: 1 },
+    req_1: {
+      module: 'music.search.SearchCgiService',
+      method: 'DoSearchForQQMusicDesktop',
+      param: { search_type: 3, query: kw, page_num: page, num_per_page: limit }
+    }
+  });
+  const j = await getJson('https://u.y.qq.com/cgi-bin/musicu.fcg', {
+    method: 'POST',
+    headers: {
+      Referer: 'https://y.qq.com/',
+      Origin: 'https://y.qq.com',
+      'Content-Type': 'application/json',
+      'User-Agent': QQ_UA
+    },
+    body
+  });
+  const r = j && j.req_1;
+  if (!r || r.code !== 0) throw new Error((r && r.msg) || 'QQ 歌单搜索失败');
+  const raw = (((r.data || {}).body || {}).songlist || {}).list || [];
+  const playlists = raw
+    .filter((it) => it && it.dissid && it.dissname)
+    .map((it) => ({
+      id: String(it.dissid),
+      name: it.dissname,
+      cover: qqPic(it.imgurl, 300),
+      listen: it.listennum || 0,
+      creator: (it.creator && it.creator.name) || '',
+      desc: it.introduction || '',
+      songCount: it.song_count || 0
+    }));
+  const data = { total: playlists.length, playlists: playlists, kw: kw };
+  if (qqPlCache.size > 80) qqPlCache.clear();
+  qqPlCache.set(key, { data, ts: Date.now() });
+  return data;
+}
+
 /** 歌单详情：musicu 的 aiDissInfo 接口（匿名可用） */
 async function qqPlaylist(dissid, limit) {
   const id = String(dissid || '').replace(/\D/g, '');
@@ -2627,6 +2675,14 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, data);
       } catch (e) {
         return json(res, 200, { playlists: [], error: 'QQ 音乐歌单：' + e.message });
+      }
+    }
+    if (p === '/api/qq/playlist/search') {
+      try {
+        const data = await qqPlaylistSearch(q.get('kw'), q.get('page'), q.get('limit'));
+        return json(res, 200, data);
+      } catch (e) {
+        return json(res, 200, { playlists: [], error: 'QQ 歌单搜索：' + e.message });
       }
     }
     if (p === '/api/qq/playlist') {
