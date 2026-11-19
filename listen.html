@@ -1044,7 +1044,7 @@
             <button type="button" class="pw-eye" id="pwEyeReg" aria-label="显示或隐藏密码"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
           </div>
         </div>
-        <p class="auth-note">账号就是你自己填的数字（用 QQ 号最好记，别人抢不走的，一个号只有一份密码）。记牢账号和密码——换手机、换电脑全靠它们找回数据。密码在本机加密保存，谁也看不到明文。</p>
+        <p class="auth-note">账号就是你自己填的数字（用 QQ 号最好记，别人抢不走的，一个号只有一份密码）。账号密码会<b>同时保存两份</b>：服务器一份（换手机、换电脑用它登录找回全部数据）+ 本机加密备份一份（服务器万一挂了，这台设备照样能登录）。密码在本机加密保存，谁也看不到明文。</p>
         <p class="dy-state" id="authRegState"></p>
       </div>
     </div>
@@ -1268,6 +1268,40 @@
     try { localStorage.setItem(AUTH_KEY, JSON.stringify(AUTH)); } catch (e) {}
   }
 
+  /* 本地凭据备份：账号密码双写（服务器一份 + 本机一份）。
+     服务器挂了也能用本机备份离线登录；密码经 XOR 混淆后存储，不明文落盘。 */
+  var CREDS_KEY = 'listen.creds.v1';
+  function loadCreds() {
+    try { return JSON.parse(localStorage.getItem(CREDS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveCreds(c) {
+    try { localStorage.setItem(CREDS_KEY, JSON.stringify(c)); } catch (e) {}
+  }
+  function credKey(acc) { return 'eb-' + acc + '-k3'; }
+  function encPw(acc, pw) {
+    var key = credKey(acc), out = '';
+    for (var i = 0; i < pw.length; i++) {
+      out += String.fromCharCode(pw.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(unescape(encodeURIComponent(out)));
+  }
+  function decPw(acc, enc) {
+    try {
+      var key = credKey(acc);
+      var s = decodeURIComponent(escape(atob(enc))), out = '';
+      for (var i = 0; i < s.length; i++) {
+        out += String.fromCharCode(s.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return out;
+    } catch (e) { return ''; }
+  }
+  function storeCred(acc, pw, nick) {
+    if (!acc || !pw) return;
+    var c = loadCreds();
+    c[acc] = { enc: encPw(acc, pw), nick: nick || '', ts: Date.now() };
+    saveCreds(c);
+  }
+
   function serializeQueue() {
     return S.tracks.filter(function (t) { return t.remote; }).map(function (t) {
       return { title: t.title, artist: t.artist || '', cover: t.cover || '', dur: t.dur || 0,
@@ -1276,7 +1310,7 @@
   }
 
   function syncUpload() {
-    if (!SYNC.ready || !AUTH.token) return;
+    if (!SYNC.ready || !AUTH.token || AUTH.local) return;
     clearTimeout(SYNC.timer);
     SYNC.timer = setTimeout(function () {
       fetch(api('/api/sync'), {
@@ -1293,7 +1327,7 @@
   }
 
   function syncDownload() {
-    if (!AUTH.token) return Promise.resolve();
+    if (!AUTH.token || AUTH.local) return Promise.resolve();
     return apiReady.then(function (st) {
       if (!st.ok) return null;
       SYNC.ready = true;
@@ -2652,9 +2686,14 @@
   function authPaint() {
     if (AUTH.token) {
       el.accName.textContent = (AUTH.nickname || '用户') + '（' + AUTH.account + '）';
-      el.accDesc.innerHTML = '<i class="acc-dot"></i>已登录 · 喜欢与列表云端同步';
+      if (AUTH.local) {
+        el.accDesc.innerHTML = '<i class="acc-dot off"></i>已登录 · 服务器不可用，账号密码仅保存在本机';
+        el.accTip.textContent = '⚠ 暂时连不上服务器：账号和密码已保存在这台设备上（加密备份），你的喜欢、历史、播放列表也只存在本机；服务器恢复后打开 APP 会自动恢复云同步，本机新增的数据会合并上去。';
+      } else {
+        el.accDesc.innerHTML = '<i class="acc-dot"></i>已登录 · 账号密码已存服务器 + 本机备份';
+        el.accTip.textContent = '数据存在账号「' + AUTH.account + '」名下；账号密码同时保存在服务器（换设备用它登录即可找回全部数据）和本机（服务器万一挂了，也能在这台设备上离线登录）。';
+      }
       el.accBtn.textContent = '退出登录';
-      el.accTip.textContent = '数据存在账号「' + AUTH.account + '」名下；在其他设备上用这个账号 + 密码登录即可全部找回。';
       // 顶部：有昵称显示昵称，没昵称就不显示这一行
       if (AUTH.nickname) {
         el.pfName.hidden = false;
@@ -2671,6 +2710,30 @@
       el.pfName.hidden = true;
       document.querySelector('.profile p').textContent = '数据只存在这台设备上';
     }
+  }
+
+  /* 探测服务器在不在：不在→标记本地模式（提示只存本机）；
+     恢复了→自动解除本地模式，把本机攒的数据同步上去 */
+  function paintStorage() {
+    if (!AUTH.token) return;
+    fetch(api('/api/auth/me?token=' + encodeURIComponent(AUTH.token)), { method: 'GET' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error('bad token');
+        if (AUTH.local) {
+          delete AUTH.local;
+          saveAuth();
+          SYNC.ready = true;
+          authPaint();
+          toast('服务器已恢复，数据恢复云同步');
+          syncDownload().then(function () {
+            renderQueue(); renderStats(); renderLikes(); syncUpload();
+          });
+        }
+      })
+      .catch(function () {
+        if (!AUTH.local) { AUTH.local = true; saveAuth(); authPaint(); }
+      });
   }
 
   function authOpen() {
@@ -2691,7 +2754,7 @@
     el.authRegForm.hidden = isLogin;
     el.authGo.textContent = isLogin ? '登录' : '注册';
     el.authSub.textContent = isLogin
-      ? '用数字账号 + 密码登录，数据全平台同步'
+      ? '用数字账号 + 密码登录，数据全平台同步；服务器连不上时会自动改用本机备份登录'
       : '用你记住的数字当账号（推荐 QQ 号）+ 密码注册';
   }
 
@@ -2701,17 +2764,22 @@
     box.className = 'dy-state' + (cls ? ' ' + cls : '');
   }
 
-  function authAfterLogin(j, isNew) {
+  function authAfterLogin(j, isNew, pw, localMode) {
     AUTH = { account: j.account, token: j.token, nickname: j.nickname || '' };
+    if (localMode) AUTH.local = true;
     saveAuth();
-    SYNC.ready = true;
+    if (pw) storeCred(j.account, pw, j.nickname);   // 本机加密备份一份（双写）
+    if (!localMode) SYNC.ready = true;
     authPaint();
     authClose();
-    if (isNew) {
-      toast('注册成功！你的账号是 ' + j.account + '，请记牢账号和密码');
+    if (localMode) {
+      toast('服务器连不上，已用本机备份的账号密码登录（数据仅在本机）');
+    } else if (isNew) {
+      toast('注册成功！账号 ' + j.account + ' 的账号密码已同时保存到服务器和本机');
     } else {
       toast('欢迎回来，' + (j.nickname || j.account));
     }
+    if (localMode) return;   // 服务器不可用：跳过抖音确认与云端拉取
     dyRefresh();   // 抖音登录态跟着账号走：登录后立刻确认绑定关系
     // 拉云端数据合并，再把本地新增的推上去
     syncDownload().then(function () {
@@ -2737,9 +2805,18 @@
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (!j.ok) { authSay('login', j.error || '登录失败', 'err'); return; }
-          authAfterLogin(j, false);
+          authAfterLogin(j, false, pw, false);
         })
-        .catch(function () { authSay('login', '连不上服务，稍后再试', 'err'); });
+        .catch(function () {
+          /* 服务器连不上：用本机加密备份的账号密码离线登录 */
+          var c = loadCreds()[acc];
+          if (c && decPw(acc, c.enc) === pw) {
+            authSay('login', '服务器连不上，改用本机备份登录…');
+            authAfterLogin({ account: acc, token: 'local-' + acc, nickname: c.nick || '' }, false, pw, true);
+          } else {
+            authSay('login', '连不上服务器，且本机没有这个账号的密码备份（首次登录必须联网）', 'err');
+          }
+        });
     } else {
       var acc2 = (el.authRegAccount.value || '').trim();
       var nick = (el.authNick.value || '').trim();
@@ -2754,9 +2831,9 @@
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (!j.ok) { authSay('reg', j.error || '注册失败', 'err'); return; }
-          authAfterLogin(j, true);
+          authAfterLogin(j, true, pw2, false);
         })
-        .catch(function () { authSay('reg', '连不上服务，稍后再试', 'err'); });
+        .catch(function () { authSay('reg', '连不上服务器，注册需要联网；已有账号可切到「登录」用本机备份离线登录', 'err'); });
     }
   }
 
@@ -2804,25 +2881,35 @@
     bindPwEye($('#pwEyeReg'), el.authPass2);
 
     authPaint();
-    // 校验本地保存的登录态是否还有效（服务端可能清过会话）
+    // 校验本地保存的登录态是否还有效（服务端可能清过会话 / 服务器可能挂了）
     if (AUTH.token) {
+      if (AUTH.local) { authPaint(); paintStorage(); return; }   // 本地模式：直接用本机凭据，顺便探活
       SYNC.ready = true;
       apiReady.then(function (st) {
-        if (!st.ok) return;
+        if (!st.ok) throw new Error('server down');
         return fetch(api('/api/auth/me?token=' + encodeURIComponent(AUTH.token))).then(function (r) { return r.json(); });
       }).then(function (j) {
         if (j && j.ok) {
+          delete AUTH.local;
           AUTH.nickname = j.nickname || AUTH.nickname;
           saveAuth();
           authPaint();
           syncDownload().then(function () { renderLikes(); renderStats(); });
         } else {
+          // 服务器明确说会话无效：退回未登录（本地凭据备份保留，可随时重新登录）
           AUTH = { account: '', token: '', nickname: '' };
           saveAuth();
           SYNC.ready = false;
           authPaint();
         }
-      }).catch(function () {});
+      }).catch(function () {
+        // 服务器连不上：进入本地模式——登录态保留，账号密码只认本机备份
+        AUTH.local = true;
+        saveAuth();
+        SYNC.ready = false;
+        authPaint();
+        paintStorage();   // 之后每次进来都会探活，恢复了自动回到云同步
+      });
     }
   }
 
